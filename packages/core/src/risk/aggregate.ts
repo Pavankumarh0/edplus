@@ -1,4 +1,4 @@
-import type { AcademicRecord, RecordType } from '../schemas/index.js';
+import type { AcademicRecord, RecordType } from '../schemas/index';
 
 export interface AggregatedIndicator {
   /** Percentage 0–100, where higher is healthier. Null when no records. */

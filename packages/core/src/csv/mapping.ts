@@ -2,7 +2,7 @@ import {
   ColumnMappingSchema,
   type ColumnMapping,
   type RecordType,
-} from '../schemas/index.js';
+} from '../schemas/index';
 
 export type MappingField = keyof ColumnMapping;
 

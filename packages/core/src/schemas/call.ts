@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IsoDateTimeSchema, ParentLanguageSchema, UsnSchema } from './common.js';
+import { IsoDateTimeSchema, ParentLanguageSchema, UsnSchema } from './common';
 
 export const CALL_PURPOSES = ['absence', 'ptm', 'risk_update'] as const;
 export const CallPurposeSchema = z.enum(CALL_PURPOSES);

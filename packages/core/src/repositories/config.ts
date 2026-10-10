@@ -6,8 +6,8 @@ import {
   type Actor,
   type AuditEntry,
   type RiskRules,
-} from '../schemas/index.js';
-import { nowIso, type Firestore } from './firestore.js';
+} from '../schemas/index';
+import { nowIso, type Firestore } from './firestore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Risk rules

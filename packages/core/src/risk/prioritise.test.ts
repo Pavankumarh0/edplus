@@ -5,10 +5,10 @@ import {
   type Intervention,
   type RiskLevel,
   type RiskSnapshot,
-} from '../schemas/index.js';
-import { countByLevel, needsDataEntry, prioritise, type PrioritisableStudent } from './prioritise.js';
-import { projectRisk, whatIf } from './project.js';
-import { buildBeforeAfter, resolveAllOutcomes, resolveInterventionOutcome } from './outcome.js';
+} from '../schemas/index';
+import { countByLevel, needsDataEntry, prioritise, type PrioritisableStudent } from './prioritise';
+import { projectRisk, whatIf } from './project';
+import { buildBeforeAfter, resolveAllOutcomes, resolveInterventionOutcome } from './outcome';
 
 /** Minimal snapshot stub — only the fields these functions actually read. */
 function snap(overrides: Partial<RiskSnapshot> & { usn: string }): RiskSnapshot {

@@ -8,8 +8,8 @@ import {
   type RecordType,
   type RowError,
   type StudentUpsert,
-} from '../schemas/index.js';
-import { normaliseDate, normaliseLanguage, normalisePhone, parseNumber } from './normalise.js';
+} from '../schemas/index';
+import { normaliseDate, normaliseLanguage, normalisePhone, parseNumber } from './normalise';
 
 export interface ParseCsvResult {
   headers: string[];

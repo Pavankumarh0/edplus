@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IndicatorKeySchema, IsoDateTimeSchema, RiskLevelSchema, UsnSchema } from './common.js';
+import { IndicatorKeySchema, IsoDateTimeSchema, RiskLevelSchema, UsnSchema } from './common';
 
 /**
  * The engine's verdict on one indicator.

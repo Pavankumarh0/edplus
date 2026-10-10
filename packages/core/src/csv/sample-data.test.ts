@@ -7,10 +7,10 @@ import {
   type AcademicRecord,
   type RecordType,
   type RiskSnapshot,
-} from '../schemas/index.js';
-import { computeSnapshot } from '../risk/engine.js';
-import { finaliseMapping, heuristicMapping, heuristicsAreSufficient } from './mapping.js';
-import { buildImport, parseCsv } from './parse.js';
+} from '../schemas/index';
+import { computeSnapshot } from '../risk/engine';
+import { finaliseMapping, heuristicMapping, heuristicsAreSufficient } from './mapping';
+import { buildImport, parseCsv } from './parse';
 
 const SAMPLE_DIR = join(dirname(fileURLToPath(import.meta.url)), '../../../../sample-data');
 

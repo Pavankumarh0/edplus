@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IsoDateSchema, IsoDateTimeSchema, UsnSchema } from './common.js';
+import { IsoDateSchema, IsoDateTimeSchema, UsnSchema } from './common';
 
 /**
  * A recovery task shown in the student app, created from an approved

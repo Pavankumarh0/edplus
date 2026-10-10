@@ -1,4 +1,4 @@
-import { PARENT_LANGUAGES, type ParentLanguage } from '../schemas/index.js';
+import { PARENT_LANGUAGES, type ParentLanguage } from '../schemas/index';
 
 /**
  * Normalises an Indian phone number to E.164.

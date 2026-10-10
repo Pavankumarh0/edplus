@@ -25,7 +25,9 @@
     "seed:emulator": "node firebase/kill-emulators.mjs && firebase emulators:exec --only firestore,auth \"npx tsx --env-file-if-exists=.env.local --env-file=.env.emulator firebase/seed.ts\"",
     "demo:reset:emulator": "node firebase/kill-emulators.mjs && firebase emulators:exec --only firestore,auth \"npx tsx --env-file-if-exists=.env.local --env-file=.env.emulator firebase/demo-reset.ts --yes\"",
     "emulators:kill": "node firebase/kill-emulators.mjs",
-    "check:contrast": "vitest run packages/core/src/design/tokens.test.ts"
+    "check:contrast": "vitest run packages/core/src/design/tokens.test.ts",
+    "test:integration": "node firebase/kill-emulators.mjs && firebase emulators:exec --only firestore \"npx vitest run --config vitest.rules.config.mts\"",
+    "dev:emulator": "node -e \"process.env.EDUPLUS_EMULATOR=1;const{spawnSync}=require('child_process');process.exit(spawnSync(process.platform==='win32'?'npm.cmd':'npm',['run','dev','--workspace','@eduplus/web'],{stdio:'inherit',env:process.env}).status??1)\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",

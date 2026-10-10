@@ -4,8 +4,8 @@ import {
   type ParentContact,
   type Student,
   type StudentUpsert,
-} from '../schemas/index.js';
-import { commitAll, nowIso, type Firestore } from './firestore.js';
+} from '../schemas/index';
+import { commitAll, nowIso, type Firestore } from './firestore';
 
 const COLLECTION = 'students';
 

@@ -1,4 +1,4 @@
-import type { RiskLevel } from '../schemas/common.js';
+import type { RiskLevel } from '../schemas/common';
 
 /**
  * Design tokens — the machine-readable source of truth.

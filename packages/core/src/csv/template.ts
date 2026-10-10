@@ -1,4 +1,4 @@
-import type { RecordType } from '../schemas/index.js';
+import type { RecordType } from '../schemas/index';
 
 interface TemplateSpec {
   headers: string[];

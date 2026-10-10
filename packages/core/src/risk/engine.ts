@@ -11,9 +11,9 @@ import {
   type RiskRules,
   type RiskSnapshot,
   assertCompleteRules,
-} from '../schemas/index.js';
-import { aggregateByType, type AggregatedIndicator, EMPTY_AGGREGATE } from './aggregate.js';
-import { bandSubScore, explainIndicator, levelForScore, round1, round2 } from './score.js';
+} from '../schemas/index';
+import { aggregateByType, type AggregatedIndicator, EMPTY_AGGREGATE } from './aggregate';
+import { bandSubScore, explainIndicator, levelForScore, round1, round2 } from './score';
 
 /** A sub-score at or below this means the indicator is genuinely healthy. */
 export const CONFLICT_STRONG_MAX = 15;

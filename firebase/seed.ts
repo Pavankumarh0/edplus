@@ -33,14 +33,14 @@ import {
   upsertStudents,
   writeRecords,
 } from '@eduplus/core/repositories';
-import { assertSafeTarget, describeTarget, ensureDemoUsers, getDb } from './lib/admin.js';
+import { assertSafeTarget, describeTarget, ensureDemoUsers, getDb } from './lib/admin';
 import {
   APRIL_FILES,
   DEMO_STUDENTS,
   MARCH_FILES,
   loadMonth,
   scoreMonth,
-} from './lib/demo-data.js';
+} from './lib/demo-data';
 
 const args = new Set(process.argv.slice(2));
 const allowLive = args.has('--live');

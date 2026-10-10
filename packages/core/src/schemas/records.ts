@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IsoDateSchema, IsoDateTimeSchema, UsnSchema } from './common.js';
+import { IsoDateSchema, IsoDateTimeSchema, UsnSchema } from './common';
 
 export const RECORD_TYPES = ['attendance', 'assessment', 'submission'] as const;
 export const RecordTypeSchema = z.enum(RECORD_TYPES);

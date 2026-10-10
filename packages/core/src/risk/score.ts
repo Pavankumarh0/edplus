@@ -3,7 +3,7 @@ import {
   type IndicatorRule,
   type LevelCutoffs,
   type RiskLevel,
-} from '../schemas/index.js';
+} from '../schemas/index';
 
 /**
  * Converts a measured value into a 0–100 risk sub-score.

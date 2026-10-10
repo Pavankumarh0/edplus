@@ -4,8 +4,8 @@ import {
   type RiskLevel,
   type RiskRules,
   type RiskSnapshot,
-} from '../schemas/index.js';
-import { bandSubScore, levelForScore, round1 } from './score.js';
+} from '../schemas/index';
+import { bandSubScore, levelForScore, round1 } from './score';
 
 /** How many recent snapshots the projection looks at. */
 export const PROJECTION_WINDOW = 4;

@@ -1,0 +1,29 @@
+{
+  "name": "@eduplus/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx tsx ../../scripts/gen-tokens.mts && next dev --port 3000",
+    "build": "npx tsx ../../scripts/gen-tokens.mts && next build",
+    "start": "next start --port 3000",
+    "typecheck": "tsc --noEmit",
+    "tokens": "npx tsx ../../scripts/gen-tokens.mts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@eduplus/core": "*",
+    "firebase": "^13.0.0",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "recharts": "^3.10.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,102 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Base
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    font-weight: var(--text-body--font-weight);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Figures never reflow a column when a score updates. */
+  .tnum,
+  table,
+  [data-metric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Visible focus everywhere. Never `outline: none` without a replacement. */
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Motion — one orchestrated moment, then only responses to actions
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@layer utilities {
+  .rise {
+    animation: rise 420ms var(--ease-ui) both;
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Diagonal hatch for an indicator with no data. Reads as "absent", which an
+     empty bar does not — an empty bar looks like a value of zero. */
+  .hatched {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      var(--color-hairline) 0 2px,
+      transparent 2px 6px
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Scrollbars that do not fight the warm palette. */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-hairline) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-hairline);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+}

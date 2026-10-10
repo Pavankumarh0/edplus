@@ -3,8 +3,8 @@ import {
   type Intervention,
   type Outcome,
   type RiskSnapshot,
-} from '../schemas/index.js';
-import { round1 } from './score.js';
+} from '../schemas/index';
+import { round1 } from './score';
 
 export interface ResolvedOutcome {
   interventionId: string;

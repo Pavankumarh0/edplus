@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RISK_LEVELS } from '../schemas/common.js';
+import { RISK_LEVELS } from '../schemas/common';
 import {
   COLORS,
   INSUFFICIENT_DATA_PALETTE,
@@ -7,7 +7,7 @@ import {
   LEVEL_PALETTE,
   WCAG,
   contrastRatio,
-} from './tokens.js';
+} from './tokens';
 
 /**
  * Accessibility claims in docs/design/DESIGN.md are asserted here rather than

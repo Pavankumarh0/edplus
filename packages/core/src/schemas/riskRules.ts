@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { INDICATOR_KEYS, IndicatorKeySchema, RiskLevelSchema } from './common.js';
+import { INDICATOR_KEYS, IndicatorKeySchema, RiskLevelSchema } from './common';
 
 /**
  * Configuration for a single indicator.

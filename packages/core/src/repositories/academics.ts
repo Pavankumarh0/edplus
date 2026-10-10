@@ -6,8 +6,8 @@ import {
   type RecordType,
   type RiskSnapshot,
   type StudentReport,
-} from '../schemas/index.js';
-import { commitAll, nowIso, type Firestore } from './firestore.js';
+} from '../schemas/index';
+import { commitAll, nowIso, type Firestore } from './firestore';
 
 function studentRef(db: Firestore, usn: string) {
   return db.collection('students').doc(usn);

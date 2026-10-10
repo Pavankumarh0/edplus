@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IsoDateTimeSchema } from './common.js';
+import { IsoDateTimeSchema } from './common';
 
 /** Who initiated a tool call. */
 export const ACTOR_KINDS = ['faculty', 'student', 'agent', 'system'] as const;

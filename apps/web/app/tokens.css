@@ -1,0 +1,89 @@
+/*
+ * GENERATED FILE — do not edit.
+ * Source: packages/core/src/design/tokens.ts
+ * Regenerate: npm run tokens --workspace @eduplus/web
+ */
+
+@theme {
+  /* canvas and ink */
+  --color-canvas: #F2F0EB;
+  --color-surface: #FBFAF8;
+  --color-surface-sunk: #EAE7E0;
+  --color-ink: #121110;
+  --color-ink-muted: #5C5852;
+  --color-ink-faint: #8F8A82;
+  --color-hairline: #DDD9D1;
+  --color-lime: #D9F99D;
+  --color-lime-edge: #7B9C2F;
+  --color-lime-text: #627C25;
+  --color-white: #FFFFFF;
+
+  /* risk levels — fill + text, never colour alone */
+  --color-level-stable: #195936;
+  --color-level-stable-fill: #DCF2E4;
+  --color-level-watch: #704900;
+  --color-level-watch-fill: #FBF0D2;
+  --color-level-at-risk: #7C380E;
+  --color-level-at-risk-fill: #FBE3D2;
+  --color-level-critical: #8D1A1A;
+  --color-level-critical-fill: #FBDAD9;
+  --color-level-nodata: #484866;
+  --color-level-nodata-fill: #E6E6F0;
+
+  /* radius — varies by role, deliberately */
+  --radius-control: 10px;
+  --radius-card: 24px;
+  --radius-hero: 32px;
+  --radius-pill: 999px;
+
+  /* elevation — only genuinely floating things */
+  --shadow-raised: 0 1px 2px rgba(18,17,16,.05), 0 8px 24px -12px rgba(18,17,16,.14);
+
+  /* type */
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --text-display: 56px;
+  --text-display--line-height: 1.0;
+  --text-display--font-weight: 680;
+  --text-display--letter-spacing: -0.03em;
+  --text-metric: 34px;
+  --text-metric--line-height: 1.1;
+  --text-metric--font-weight: 640;
+  --text-metric--letter-spacing: -0.02em;
+  --text-h1: 26px;
+  --text-h1--line-height: 1.25;
+  --text-h1--font-weight: 600;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h2: 17px;
+  --text-h2--line-height: 1.35;
+  --text-h2--font-weight: 600;
+  --text-h2--letter-spacing: -0.01em;
+  --text-body: 15px;
+  --text-body--line-height: 1.55;
+  --text-body--font-weight: 440;
+  --text-body--letter-spacing: 0;
+  --text-body-sm: 13.5px;
+  --text-body-sm--line-height: 1.5;
+  --text-body-sm--font-weight: 440;
+  --text-body-sm--letter-spacing: 0;
+  --text-label: 12.5px;
+  --text-label--line-height: 1.3;
+  --text-label--font-weight: 560;
+  --text-label--letter-spacing: 0.01em;
+  --text-mono: 13px;
+  --text-mono--line-height: 1.4;
+  --text-mono--font-weight: 500;
+  --text-mono--letter-spacing: 0;
+
+  /* motion */
+  --ease-ui: cubic-bezier(.2,.7,.3,1);
+}
+
+:root {
+  /* student-app gradients, keyed by level so feel matches label */
+  --gradient-stable: linear-gradient(140deg, #DFF5EA 0%, #CFE9F7 100%);
+  --gradient-watch: linear-gradient(140deg, #DCEBFA 0%, #E6F4F1 100%);
+  --gradient-at-risk: linear-gradient(140deg, #E8E2F7 0%, #F3E4F0 100%);
+  --gradient-critical: linear-gradient(140deg, #F3E4F0 0%, #FBE3D2 100%);
+  --motion-duration: 180ms;
+}

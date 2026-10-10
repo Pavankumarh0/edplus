@@ -1,6 +1,6 @@
 import { getAuth } from 'firebase-admin/auth';
 import { getAdminApp, getDb, isUsingEmulator } from '@eduplus/core/repositories';
-import { DEMO_USERS } from './demo-data.js';
+import { DEMO_USERS } from './demo-data';
 
 export { getDb, isUsingEmulator };
 

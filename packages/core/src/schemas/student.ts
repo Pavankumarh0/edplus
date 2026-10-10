@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IsoDateTimeSchema, ParentLanguageSchema, PhoneSchema, UsnSchema } from './common.js';
+import { IsoDateTimeSchema, ParentLanguageSchema, PhoneSchema, UsnSchema } from './common';
 
 /**
  * Parent contact details.

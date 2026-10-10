@@ -6,10 +6,10 @@ import {
   type RecordType,
   type RiskRules,
   type RiskSnapshot,
-} from '../schemas/index.js';
-import { computeSnapshot, detectConflicts } from './engine.js';
-import { aggregateRecords } from './aggregate.js';
-import { bandSubScore, levelForScore } from './score.js';
+} from '../schemas/index';
+import { computeSnapshot, detectConflicts } from './engine';
+import { aggregateRecords } from './aggregate';
+import { bandSubScore, levelForScore } from './score';
 
 const NOW = new Date('2026-03-01T10:00:00.000Z');
 const LATER = new Date('2026-04-01T10:00:00.000Z');

@@ -11,9 +11,9 @@ import {
   type InterventionStatus,
   type StudentTask,
   type Upload,
-} from '../schemas/index.js';
-import type { ResolvedOutcome } from '../risk/outcome.js';
-import { commitAll, nowIso, type Firestore } from './firestore.js';
+} from '../schemas/index';
+import type { ResolvedOutcome } from '../risk/outcome';
+import { commitAll, nowIso, type Firestore } from './firestore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Interventions

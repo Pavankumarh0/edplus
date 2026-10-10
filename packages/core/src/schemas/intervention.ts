@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { IsoDateSchema, IsoDateTimeSchema, UsnSchema } from './common.js';
-import { OutcomeSchema } from './snapshot.js';
+import { IsoDateSchema, IsoDateTimeSchema, UsnSchema } from './common';
+import { OutcomeSchema } from './snapshot';
 
 export const INTERVENTION_TYPES = [
   'mentor_meeting',

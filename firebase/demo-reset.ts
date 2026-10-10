@@ -22,7 +22,7 @@ import {
   ensureDemoUsers,
   getDb,
   wipeCollection,
-} from './lib/admin.js';
+} from './lib/admin';
 
 const args = new Set(process.argv.slice(2));
 const allowLive = args.has('--live');

@@ -4,11 +4,11 @@ import {
   heuristicMapping,
   heuristicsAreSufficient,
   normaliseHeader,
-} from './mapping.js';
-import { normaliseDate, normaliseLanguage, normalisePhone, parseNumber } from './normalise.js';
-import { buildImport, parseCsv } from './parse.js';
-import { templateCsv, templateHeaders } from './template.js';
-import type { ColumnMapping } from '../schemas/index.js';
+} from './mapping';
+import { normaliseDate, normaliseLanguage, normalisePhone, parseNumber } from './normalise';
+import { buildImport, parseCsv } from './parse';
+import { templateCsv, templateHeaders } from './template';
+import type { ColumnMapping } from '../schemas/index';
 
 describe('normaliseHeader', () => {
   it('strips case and punctuation', () => {

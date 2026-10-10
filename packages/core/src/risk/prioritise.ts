@@ -1,4 +1,4 @@
-import { riskLevelRank, type RiskSnapshot } from '../schemas/index.js';
+import { riskLevelRank, type RiskSnapshot } from '../schemas/index';
 
 export interface PrioritisableStudent {
   usn: string;

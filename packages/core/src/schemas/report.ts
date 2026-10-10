@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { IsoDateTimeSchema, UsnSchema } from './common.js';
-import { InterventionTypeSchema } from './intervention.js';
+import { IsoDateTimeSchema, UsnSchema } from './common';
+import { InterventionTypeSchema } from './intervention';
 
 /**
  * The structured body Claude must return for a student report.

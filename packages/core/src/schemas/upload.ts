@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { IsoDateTimeSchema } from './common.js';
-import { RecordTypeSchema } from './records.js';
+import { IsoDateTimeSchema } from './common';
+import { RecordTypeSchema } from './records';
 
 /**
  * Which CSV column feeds which field. Produced by header heuristics first and
