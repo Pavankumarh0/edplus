@@ -42,6 +42,21 @@ export async function getIntervention(
   return snap.exists ? InterventionSchema.parse(snap.data()) : null;
 }
 
+/**
+ * Sorts newest first in memory rather than with `orderBy`.
+ *
+ * Firestore needs a composite index for every distinct combination of equality
+ * filter plus sort, and the combinations here multiply: usn alone, status
+ * alone, both, neither. A query filtering on `usn` cannot even reuse the
+ * (usn, status, createdAt) index, because `status` sits between the two fields
+ * it needs.
+ *
+ * The result set is a handful of interventions per student or per board
+ * column, so sorting them here costs nothing and removes a whole class of
+ * FAILED_PRECONDITION errors that only appear once real data exists — which,
+ * in practice, means during a demo. The indexes stay declared in
+ * firestore.indexes.json for when this outgrows that assumption.
+ */
 export async function listInterventions(
   db: Firestore,
   filter: { usn?: string; status?: InterventionStatus } = {},
@@ -49,8 +64,13 @@ export async function listInterventions(
   let query = db.collection(INTERVENTIONS) as any;
   if (filter.usn) query = query.where('usn', '==', filter.usn);
   if (filter.status) query = query.where('status', '==', filter.status);
-  const snap = await query.orderBy('createdAt', 'desc').get();
-  return snap.docs.map((d: any) => InterventionSchema.parse(d.data()));
+
+  const snap = await query.get();
+  return snap.docs
+    .map((d: any) => InterventionSchema.parse(d.data()))
+    .sort((a: Intervention, b: Intervention) =>
+      (b.createdAt ?? '').localeCompare(a.createdAt ?? ''),
+    );
 }
 
 /** Interventions still in play, for the "already being supported?" tie-break. */
@@ -174,11 +194,15 @@ export async function getCall(db: Firestore, callId: string): Promise<CallRecord
   return snap.exists ? CallRecordSchema.parse(snap.data()) : null;
 }
 
+/** Newest first, sorted in memory for the same reason as interventions. */
 export async function listCalls(db: Firestore, usn?: string): Promise<CallRecord[]> {
   let query = db.collection(CALLS) as any;
   if (usn) query = query.where('usn', '==', usn);
-  const snap = await query.orderBy('createdAt', 'desc').get();
-  return snap.docs.map((d: any) => CallRecordSchema.parse(d.data()));
+
+  const snap = await query.get();
+  return snap.docs
+    .map((d: any) => CallRecordSchema.parse(d.data()))
+    .sort((a: CallRecord, b: CallRecord) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function updateCall(
