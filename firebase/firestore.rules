@@ -179,6 +179,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── Remote MCP connectors ─────────────────────────────────────────────
+    // No client reads this, ever — not even faculty. A connector record names
+    // an external server this backend will make requests to, so it is read and
+    // written only through the API routes, which apply the faculty check and
+    // the SSRF rules first. Serving it to a browser would add a second path to
+    // the same data with none of those checks.
+    match /connectors/{connectorId} {
+      allow read, write: if false;
+    }
+
     // ── Audit log ─────────────────────────────────────────────────────────
     // No client reads this, ever. It records every tool call including
     // redacted arguments, and it is append-only from the server.

@@ -8,6 +8,7 @@ import {
   type ToolClass,
 } from '@eduplus/core';
 import { Badge, Button, Card, CardTitle, cx } from './ui';
+import { AddConnectorDialog } from './AddConnectorDialog';
 
 interface Summary {
   connectors: number;
@@ -29,7 +30,19 @@ interface ActivityRow {
   argKeys: string[];
 }
 
-type Tab = 'connected' | 'tools' | 'activity';
+type Tab = 'connected' | 'remote' | 'tools' | 'activity';
+
+interface RemoteConnectorView {
+  connectorId: string;
+  displayName: string;
+  serverUrl: string;
+  description?: string;
+  status: 'connected' | 'needs_setup' | 'error';
+  serverName: string | null;
+  lastError: string | null;
+  lastConnectedAt: string | null;
+  tools: { name: string; description: string; enabled: boolean }[];
+}
 
 const STATUS_TONE: Record<ActivityRow['status'], { label: string; fg: string; bg: string }> = {
   ok: { label: 'ok', fg: 'var(--color-level-stable)', bg: 'var(--color-level-stable-fill)' },
@@ -69,6 +82,8 @@ export function ConnectorsBoard() {
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [remote, setRemote] = useState<RemoteConnectorView[]>([]);
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -77,6 +92,12 @@ export function ConnectorsBoard() {
       if (!response.ok) throw new Error(json.error ?? 'Could not load connectors.');
       setConnectors(json.connectors);
       setSummary(json.summary);
+
+      const remoteResponse = await fetch('/api/connectors/remote');
+      if (remoteResponse.ok) {
+        const remoteJson = await remoteResponse.json();
+        setRemote(remoteJson.connectors ?? []);
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not load connectors.');
     }
@@ -101,6 +122,25 @@ export function ConnectorsBoard() {
       }
     })();
   }, [tab, activity]);
+
+  /** Shared by the remote tool toggle, reconnect and disconnect actions. */
+  async function remoteAction(init: RequestInit, label: string, query = ''): Promise<void> {
+    setBusy(label);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/connectors/remote${query}`, init);
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(json.error ?? 'That did not work.');
+      setMessage(json.message ?? null);
+      await load();
+      setActivity(null);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'That did not work.');
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function toggle(tool: ConnectorTool) {
     setBusy(tool.name);
@@ -164,6 +204,7 @@ export function ConnectorsBoard() {
         {(
           [
             ['connected', 'Connected'],
+            ['remote', `Remote MCP${remote.length > 0 ? ` · ${remote.length}` : ''}`],
             ['tools', `Available tools${summary ? ` · ${summary.tools}` : ''}`],
             ['activity', 'Activity'],
           ] as [Tab, string][]
@@ -273,6 +314,175 @@ export function ConnectorsBoard() {
             </Card>
           ))
         : null}
+
+      {/* ── Remote MCP servers ────────────────────────────────────────────── */}
+      {tab === 'remote' ? (
+        <>
+          <Card className="mb-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle>Remote MCP servers</CardTitle>
+                <p className="text-body-sm text-ink-muted mt-1 max-w-[62ch]">
+                  Connect a server over Streamable HTTP. Its tools arrive switched off and
+                  reach the copilot only once you turn them on.
+                </p>
+              </div>
+              <Button onClick={() => setAdding(true)}>Add custom connector</Button>
+            </div>
+          </Card>
+
+          {remote.length === 0 ? (
+            <Card>
+              <p className="text-body-sm text-ink-muted">
+                None connected. Private, loopback and link-local addresses are refused, and a
+                server has to complete an MCP handshake before it can be saved.
+              </p>
+            </Card>
+          ) : (
+            remote.map((connector) => (
+              <Card key={connector.connectorId} className="mb-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <h2 className="text-h2">{connector.displayName}</h2>
+                      <span
+                        className="text-label rounded-[var(--radius-pill)] px-2.5 py-0.5"
+                        style={
+                          connector.status === 'connected'
+                            ? {
+                                color: 'var(--color-level-stable)',
+                                background: 'var(--color-level-stable-fill)',
+                              }
+                            : {
+                                color: 'var(--color-level-critical)',
+                                background: 'var(--color-level-critical-fill)',
+                              }
+                        }
+                      >
+                        {connector.status === 'connected' ? 'Connected' : 'Not reachable'}
+                      </span>
+                      <Badge>
+                        {connector.tools.filter((t) => t.enabled).length} of{' '}
+                        {connector.tools.length} on
+                      </Badge>
+                    </div>
+                    <p className="text-ink-faint mt-1.5 font-mono text-[12.5px] break-all">
+                      {connector.serverUrl}
+                    </p>
+                    {connector.serverName ? (
+                      <p className="text-body-sm text-ink-muted mt-1">
+                        Identifies itself as {connector.serverName}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      variant="secondary"
+                      disabled={busy !== null}
+                      onClick={() =>
+                        void remoteAction(
+                          {
+                            method: 'PATCH',
+                            headers: { 'content-type': 'application/json' },
+                            body: JSON.stringify({
+                              connectorId: connector.connectorId,
+                              reconnect: true,
+                            }),
+                          },
+                          `reconnect-${connector.connectorId}`,
+                        )
+                      }
+                    >
+                      {busy === `reconnect-${connector.connectorId}` ? '…' : 'Reconnect'}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      disabled={busy !== null}
+                      onClick={() =>
+                        void remoteAction(
+                          { method: 'DELETE' },
+                          `disconnect-${connector.connectorId}`,
+                          `?connectorId=${encodeURIComponent(connector.connectorId)}`,
+                        )
+                      }
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
+                </div>
+
+                {connector.lastError ? (
+                  <p
+                    className="text-body-sm mt-3 rounded-[var(--radius-control)] px-3 py-2"
+                    style={{
+                      color: 'var(--color-level-critical)',
+                      background: 'var(--color-level-critical-fill)',
+                    }}
+                  >
+                    {connector.lastError}
+                  </p>
+                ) : null}
+
+                <ul className="divide-hairline mt-4 divide-y">
+                  {connector.tools.map((tool) => (
+                    <li
+                      key={tool.name}
+                      className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span
+                          className={cx(
+                            'font-mono text-[13px]',
+                            tool.enabled ? 'text-ink' : 'text-ink-faint',
+                          )}
+                        >
+                          {tool.name}
+                        </span>
+                        <p className="text-body-sm text-ink-muted mt-1 max-w-[64ch]">
+                          {tool.description || 'No description given.'}
+                        </p>
+                        <p className="text-body-sm text-ink-faint mt-1">
+                          Written by that server, not by EduPlus.
+                        </p>
+                      </div>
+                      <Button
+                        variant={tool.enabled ? 'ghost' : 'secondary'}
+                        disabled={busy !== null}
+                        onClick={() =>
+                          void remoteAction(
+                            {
+                              method: 'PATCH',
+                              headers: { 'content-type': 'application/json' },
+                              body: JSON.stringify({
+                                connectorId: connector.connectorId,
+                                tool: tool.name,
+                                enabled: !tool.enabled,
+                              }),
+                            },
+                            `${connector.connectorId}-${tool.name}`,
+                          )
+                        }
+                      >
+                        {tool.enabled ? 'Switch off' : 'Switch on'}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            ))
+          )}
+        </>
+      ) : null}
+
+      {adding ? (
+        <AddConnectorDialog
+          onClose={() => setAdding(false)}
+          onAdded={(text) => {
+            setMessage(text);
+            void load();
+          }}
+        />
+      ) : null}
 
       {/* ── Available tools ───────────────────────────────────────────────── */}
       {tab === 'tools' && connectors ? (

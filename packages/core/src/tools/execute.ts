@@ -1,4 +1,7 @@
 import { getConnectorSettings, writeAudit } from '../repositories/config';
+import { getRemoteConnector } from '../repositories/connectors';
+import { callRemoteTool, fenceUntrusted } from '../connectors/mcp-client';
+import { parseRemoteToolName } from '../schemas/connector';
 import { TOOLS } from './definitions';
 import { canCall } from './permissions';
 import {
@@ -46,6 +49,12 @@ export async function executeTool<T = unknown>(
 ): Promise<ToolResult<T>> {
   const started = Date.now();
   const finish = () => Date.now() - started;
+
+  // A namespaced name belongs to a remote MCP server, not to our registry.
+  const remote = parseRemoteToolName(toolName);
+  if (remote) {
+    return (await executeRemoteTool(toolName, remote, rawInput, ctx, finish)) as ToolResult<T>;
+  }
 
   const tool = TOOLS[toolName];
   if (!tool) {
@@ -142,4 +151,89 @@ export async function executeTool<T = unknown>(
 export function formatToolResult(result: ToolResult): string {
   if (!result.ok) return `ERROR: ${result.error}`;
   return JSON.stringify(result.data, null, 2);
+}
+
+/**
+ * Calls a tool on a remote MCP server.
+ *
+ * Held to the same four checks as a native tool, plus two more that only
+ * matter for a third party: the connector must still be connected, and the
+ * individual tool must still be enabled. Both are read now rather than
+ * cached, so disconnecting revokes access to a call already being composed.
+ *
+ * The result is fenced before it goes back to the model. A remote server's
+ * output is data from someone we do not control, and the one thing it must
+ * never be able to do is read as an instruction.
+ */
+async function executeRemoteTool(
+  toolName: string,
+  remote: { connectorId: string; toolName: string },
+  rawInput: unknown,
+  ctx: ToolContext,
+  finish: () => number,
+): Promise<ToolResult<string>> {
+  const fail = async (message: string, status: 'permission_denied' | 'error') => {
+    await writeAudit(ctx.db, {
+      actor: ctx.actor,
+      tool: toolName,
+      args: rawInput,
+      status,
+      errorMessage: message,
+      durationMs: finish(),
+    });
+    return { ok: false, tool: toolName, error: message, durationMs: finish() };
+  };
+
+  // Only a faculty member or an agent acting in the dashboard reaches an
+  // external server. A student-scoped actor never does: their data stays in
+  // this system, and a remote connector is not a place to send it.
+  if (ctx.actor.kind === 'student' || ctx.actor.usn) {
+    return fail(
+      'Remote connectors are not available in the student app.',
+      'permission_denied',
+    );
+  }
+
+  const connector = await getRemoteConnector(ctx.db, remote.connectorId);
+  if (!connector) {
+    return fail(`The connector "${remote.connectorId}" has been disconnected.`, 'permission_denied');
+  }
+  if (connector.status !== 'connected') {
+    return fail(`"${connector.displayName}" is not connected.`, 'permission_denied');
+  }
+
+  const tool = connector.tools.find((t) => t.name === remote.toolName);
+  if (!tool) {
+    return fail(`"${connector.displayName}" no longer offers "${remote.toolName}".`, 'permission_denied');
+  }
+  if (!tool.enabled) {
+    return fail(
+      `"${remote.toolName}" is switched off for "${connector.displayName}".`,
+      'permission_denied',
+    );
+  }
+
+  try {
+    const text = await callRemoteTool(
+      connector.serverUrl,
+      remote.toolName,
+      (rawInput ?? {}) as Record<string, unknown>,
+    );
+    await writeAudit(ctx.db, {
+      actor: ctx.actor,
+      tool: toolName,
+      args: rawInput,
+      status: 'ok',
+      durationMs: finish(),
+    });
+    return {
+      ok: true,
+      tool: toolName,
+      data: fenceUntrusted(connector.displayName, remote.toolName, text),
+      durationMs: finish(),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return fail(message, 'error');
+  }
 }

@@ -5,3 +5,4 @@ export * from './workflow';
 export * from './config';
 export * from './plans';
 export * from './meetings';
+export * from './connectors';
