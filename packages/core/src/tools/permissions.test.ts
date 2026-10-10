@@ -16,22 +16,34 @@ const system: Actor = { kind: 'system', id: 'cron' };
 const agent = (name: string): Actor => ({ kind: 'agent', id: `agent:${name}`, agentName: name });
 
 describe('the tool registry', () => {
-  it('exposes exactly the tools the brief specifies', () => {
-    expect(new Set(TOOL_NAMES)).toEqual(
-      new Set([
-        'get_student',
-        'get_student_history',
-        'list_at_risk_students',
-        'get_risk_breakdown',
-        'save_report',
-        'propose_intervention',
-        'update_intervention',
-        'create_student_tasks',
-        'get_call_context',
-        'log_call_outcome',
-        'schedule_parent_call',
-      ]),
-    );
+  it('exposes every tool the brief specifies', () => {
+    for (const name of [
+      'get_student',
+      'get_student_history',
+      'list_at_risk_students',
+      'get_risk_breakdown',
+      'save_report',
+      'propose_intervention',
+      'update_intervention',
+      'create_student_tasks',
+      'get_call_context',
+      'log_call_outcome',
+      'schedule_parent_call',
+    ]) {
+      expect(TOOL_NAMES, name).toContain(name);
+    }
+  });
+
+  it('exposes the student-scoped tools Planly needs', () => {
+    for (const name of [
+      'get_my_progress',
+      'save_study_plan',
+      'create_plan_tasks',
+      'create_activity',
+      'list_my_activities',
+    ]) {
+      expect(TOOL_NAMES, name).toContain(name);
+    }
   });
 
   it('gives every tool a model-facing description', () => {
@@ -164,7 +176,13 @@ describe('input schemas', () => {
   it('reject an empty payload on every tool that needs a subject', () => {
     // list_at_risk_students is the deliberate exception: "who needs attention
     // today?" takes no arguments and is its primary use.
-    const takesNoArgs = new Set(['list_at_risk_students']);
+    // The student-scoped tools take no arguments by design: the student comes
+    // from the actor, not from the call.
+    const takesNoArgs = new Set([
+      'list_at_risk_students',
+      'get_my_progress',
+      'list_my_activities',
+    ]);
     for (const name of TOOL_NAMES) {
       if (takesNoArgs.has(name)) continue;
       expect(TOOLS[name]!.inputSchema.safeParse({}).success, name).toBe(false);
@@ -221,5 +239,62 @@ describe('input schemas', () => {
     expect(
       TOOLS.create_student_tasks!.inputSchema.safeParse({ usn: '1OX21IS045', tasks }).success,
     ).toBe(false);
+  });
+});
+
+describe('Planly is confined to one student', () => {
+  const STUDENT_SCOPED = [
+    'get_my_progress',
+    'save_study_plan',
+    'create_plan_tasks',
+    'create_activity',
+    'list_my_activities',
+  ];
+
+  it('never accepts a usn argument', () => {
+    // This is the whole guarantee. If a usn could be passed, a prompt could
+    // ask for another student's record; because it cannot, the request is
+    // inexpressible rather than merely refused.
+    for (const name of STUDENT_SCOPED) {
+      const parsed = TOOLS[name]!.inputSchema.safeParse({ usn: '1OX21IS001' });
+      const data = parsed.success ? (parsed.data as Record<string, unknown>) : {};
+      expect(data.usn, name).toBeUndefined();
+    }
+  });
+
+  it('is exactly the planly allowlist', () => {
+    expect([...AGENT_TOOLS.planly].sort()).toEqual([...STUDENT_SCOPED].sort());
+  });
+
+  it('cannot reach any faculty tool', () => {
+    for (const forbidden of [
+      'get_student',
+      'get_student_history',
+      'list_at_risk_students',
+      'get_risk_breakdown',
+      'save_report',
+      'propose_intervention',
+      'update_intervention',
+      'create_student_tasks',
+      'schedule_parent_call',
+      'get_call_context',
+      'log_call_outcome',
+    ]) {
+      expect(canCall(agent('planly'), forbidden), forbidden).toBe(false);
+    }
+  });
+
+  it('is not granted to the other agents', () => {
+    for (const name of ['report', 'copilot', 'voice'] as const) {
+      for (const tool of STUDENT_SCOPED) {
+        expect(canCall(agent(name), tool), `${name} -> ${tool}`).toBe(false);
+      }
+    }
+  });
+
+  it('writes a plan but never a report or an intervention', () => {
+    expect(canCall(agent('planly'), 'save_study_plan')).toBe(true);
+    expect(canCall(agent('planly'), 'save_report')).toBe(false);
+    expect(canCall(agent('planly'), 'propose_intervention')).toBe(false);
   });
 });

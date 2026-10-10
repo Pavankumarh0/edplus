@@ -10,8 +10,18 @@ export const ActorSchema = z.object({
   kind: ActorKindSchema,
   /** Firebase uid for humans, agent name for agents. */
   id: z.string().min(1),
-  /** Which agent, when kind === 'agent': report | copilot | voice. */
+  /** Which agent, when kind === 'agent': report | copilot | voice | planly. */
   agentName: z.string().min(1).optional(),
+  /**
+   * Confines this actor to one student.
+   *
+   * Set for student sign-ins and for Planly, which runs on a student's behalf.
+   * The student-scoped tools take no `usn` argument at all — they read it from
+   * here — so Planly acting for one student cannot be argued, prompted or
+   * tricked into reading another's record. The capability is absent, not
+   * merely discouraged.
+   */
+  usn: z.string().min(1).optional(),
 });
 
 export type Actor = z.infer<typeof ActorSchema>;

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {
   INDICATOR_KEYS,
+  INDICATOR_LABELS,
   INTERVENTION_TYPE_LABELS,
   LEVEL_PALETTE,
   PARENT_RESPONSE_LABELS,
@@ -28,8 +29,10 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
   const data = await getStudentDetail(decodeURIComponent(usn).toUpperCase());
   if (!data) notFound();
 
-  const { student, snapshot, rules, history, report, interventions, calls, tasks, parent, account } =
-    data;
+  const {
+    student, snapshot, rules, history, report, interventions, calls, tasks, parent, account,
+    plan, adherence, activities,
+  } = data;
 
   const settled = interventions.filter((i) => i.outcomeSnapshotId && i.outcome);
   const latestSettled = settled[0];
@@ -70,6 +73,7 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
           hasParentContact={Boolean(parent?.phone)}
           parentLanguage={parent?.preferredLanguage ?? 'en-IN'}
           hasSnapshot={snapshot !== null}
+          missedTasks={adherence.overdue}
         />
       </header>
 
@@ -385,6 +389,93 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
                       </span>
                       <span className={task.done ? 'text-ink-faint line-through' : ''}>
                         {task.title}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </Card>
+
+          {/* ── Planly: the plan, and whether it is being followed ──────── */}
+          <Card className="lg:col-span-7">
+            <CardTitle hint={plan ? `${plan.weeks}-week plan` : undefined}>
+              Study plan
+            </CardTitle>
+
+            {!plan ? (
+              <p className="text-body-sm text-ink-muted">
+                {student.name.split(' ')[0]} has not asked Planly for a plan yet. It is offered
+                in the app — students build their own, which is rather the point.
+              </p>
+            ) : (
+              <>
+                <p className="text-body font-medium">{plan.goal}</p>
+                <p className="text-body-sm text-ink-muted mt-2">{plan.rationale}</p>
+
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {plan.focus.map((key) => (
+                    <Badge key={key}>{INDICATOR_LABELS[key]}</Badge>
+                  ))}
+                </div>
+
+                {plan.milestones.length > 0 ? (
+                  <ul className="border-hairline mt-4 space-y-2 border-t pt-4">
+                    {plan.milestones.map((milestone, index) => (
+                      <li key={index} className="text-body-sm">
+                        <span className="font-medium">{milestone.title}</span>
+                        <span className="text-ink-muted"> — {milestone.target}</span>
+                        <span className="text-ink-faint"> by {milestone.byDate}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
+            )}
+          </Card>
+
+          {/* ── Effort, reported beside the score and never inside it ───── */}
+          <Card className="lg:col-span-5">
+            <CardTitle hint="Not part of the risk score">Effort</CardTitle>
+
+            {adherence.rate === null ? (
+              <p className="text-body-sm text-ink-muted">
+                Nothing scheduled yet, so there is no effort to measure.
+              </p>
+            ) : (
+              <>
+                <div className="flex items-end gap-8">
+                  <Metric
+                    value={`${Math.round(adherence.rate * 100)}%`}
+                    label={`${adherence.done} of ${adherence.due} tasks done`}
+                    tone={adherence.rate >= 0.7 ? 'stable' : adherence.rate >= 0.4 ? 'watch' : 'critical'}
+                  />
+                  <Metric value={adherence.streak} label="day streak" />
+                  {adherence.overdue > 0 ? (
+                    <Metric value={adherence.overdue} label="overdue" tone="at_risk" />
+                  ) : null}
+                </div>
+
+                <p className="text-body-sm text-ink-muted mt-4">
+                  {adherence.rate >= 0.7
+                    ? 'Doing the work. If the score has not moved yet, it will at the next upload — give it time rather than escalating.'
+                    : adherence.rate >= 0.4
+                      ? 'Partly keeping up. Worth asking which tasks are not landing before adding more.'
+                      : 'Not doing the plan. That is a different conversation from being behind academically — find out why before escalating to a parent call.'}
+                </p>
+              </>
+            )}
+
+            {activities.length > 0 ? (
+              <div className="border-hairline mt-4 border-t pt-4">
+                <h3 className="text-h2 mb-2">Practice</h3>
+                <ul className="space-y-1.5">
+                  {activities.slice(0, 4).map((activity) => (
+                    <li key={activity.activityId} className="text-body-sm flex items-center gap-2">
+                      <Badge>{activity.kind}</Badge>
+                      <span className="truncate">{activity.title}</span>
+                      <span className="text-ink-faint ml-auto shrink-0 tabular-nums">
+                        {activity.score === null ? 'not attempted' : `${activity.score}/${activity.outOf}`}
                       </span>
                     </li>
                   ))}

@@ -271,13 +271,27 @@ class EduCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(title!, style: EduText.h2),
+                // Flexible, so a long title shares the row rather than
+                // pushing the hint off the edge.
+                Flexible(
+                  child: Text(
+                    title!,
+                    style: EduText.h2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 if (hint != null)
                   Flexible(
-                    child: Text(
-                      hint!,
-                      textAlign: TextAlign.right,
-                      style: EduText.bodySm.copyWith(color: EduColors.inkFaint),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 10),
+                      child: Text(
+                        hint!,
+                        textAlign: TextAlign.right,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: EduText.bodySm.copyWith(color: EduColors.inkFaint),
+                      ),
                     ),
                   ),
               ],

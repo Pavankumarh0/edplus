@@ -39,6 +39,22 @@ export const AGENT_TOOLS: Record<AgentName, readonly string[]> = {
    * and record what the parent said. Nothing else.
    */
   voice: ['get_call_context', 'log_call_outcome'],
+
+  /**
+   * Planly — the student's study planner.
+   *
+   * Every tool here is student-scoped and takes no `usn`, so Planly is
+   * confined to whoever it was launched for. It cannot list the cohort, read
+   * another student, write a report, or reach anything a mentor controls:
+   * it plans, schedules and sets practice, and that is all.
+   */
+  planly: [
+    'get_my_progress',
+    'save_study_plan',
+    'create_plan_tasks',
+    'create_activity',
+    'list_my_activities',
+  ],
 };
 
 /** Faculty may use every non-consequential tool, plus the consequential ones. */
@@ -56,7 +72,9 @@ export function toolsForActor(actor: Actor): string[] {
         .filter((tool) => !tool.consequential)
         .map((tool) => tool.name);
     case 'student':
-      // The student app reads its own data through Firestore rules, not tools.
+      // The app reads its own data straight from Firestore under the security
+      // rules. The only tools a student reaches are the ones Planly runs on
+      // their behalf, and those are granted to the agent, not to them.
       return [];
     default:
       return [];

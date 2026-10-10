@@ -45,7 +45,7 @@ export interface ToolDefinition<Input = unknown, Output = unknown> {
 }
 
 /** The agents that call tools. Each gets an allowlist, never the full set. */
-export const AGENT_NAMES = ['report', 'copilot', 'voice'] as const;
+export const AGENT_NAMES = ['report', 'copilot', 'voice', 'planly'] as const;
 export type AgentName = (typeof AGENT_NAMES)[number];
 
 export class ToolPermissionError extends Error {

@@ -86,6 +86,19 @@ beforeEach(async () => {
         usn, title: 'Attend all 6 DBMS classes this week', done: false,
         doneAt: null, interventionId: 'iv1',
       });
+      await setDoc(doc(db, 'students', usn, 'plans', 'p1'), {
+        planId: 'p1', usn, snapshotId: 's1', goal: 'Get attendance above 75%',
+        rationale: 'Attendance 37.8% against a 90% threshold.',
+        focus: ['attendance'], weeks: 2, milestones: [], status: 'active',
+        model: 'claude-sonnet-5-5', createdAt: '2026-03-03T06:00:00.000Z',
+      });
+      await setDoc(doc(db, 'students', usn, 'activities', 'a1'), {
+        activityId: 'a1', usn, planId: 'p1', kind: 'quiz', subject: 'DBMS',
+        title: 'Normalisation basics', reason: 'Weakest subject.',
+        questions: [{ question: 'What is 1NF?', options: ['a', 'b'], answerIndex: 0, explanation: 'x' }],
+        status: 'ready', score: null, outOf: null, attemptedAt: null,
+        model: 'claude-sonnet-5-5', createdAt: '2026-03-03T06:00:00.000Z',
+      });
     }
     await setDoc(doc(db, 'interventions', 'iv1'), {
       usn: OWN_USN, type: 'mentor_meeting', status: 'approved',
@@ -287,5 +300,76 @@ describe('default deny', () => {
       await assertFails(getDoc(doc(db, 'somethingNew', 'x')));
       await assertFails(setDoc(doc(db, 'somethingNew', 'x'), { a: 1 }));
     }
+  });
+});
+
+describe('study plans', () => {
+  it('a student can read their own plan', async () => {
+    await assertSucceeds(getDoc(doc(student(), 'students', OWN_USN, 'plans', 'p1')));
+  });
+
+  it('faculty can read it too, to see whether it is being followed', async () => {
+    await assertSucceeds(getDoc(doc(faculty(), 'students', OWN_USN, 'plans', 'p1')));
+  });
+
+  it('a student cannot read another student’s plan', async () => {
+    await assertFails(getDoc(doc(student(), 'students', OTHER_USN, 'plans', 'p1')));
+  });
+
+  it('nobody can write a plan from a client', async () => {
+    await assertFails(
+      setDoc(doc(student(), 'students', OWN_USN, 'plans', 'p2'), { goal: 'Easier goal' }),
+    );
+    await assertFails(
+      updateDoc(doc(faculty(), 'students', OWN_USN, 'plans', 'p1'), { goal: 'Changed' }),
+    );
+  });
+});
+
+describe('practice activities', () => {
+  it('a student can read their own', async () => {
+    await assertSucceeds(getDoc(doc(student(), 'students', OWN_USN, 'activities', 'a1')));
+  });
+
+  it('a student can record an attempt', async () => {
+    await assertSucceeds(
+      updateDoc(doc(student(), 'students', OWN_USN, 'activities', 'a1'), {
+        status: 'completed',
+        score: 3,
+        outOf: 5,
+        attemptedAt: '2026-03-10T10:00:00.000Z',
+      }),
+    );
+  });
+
+  it('a student cannot rewrite the questions or the answers', async () => {
+    const ref = doc(student(), 'students', OWN_USN, 'activities', 'a1');
+    await assertFails(updateDoc(ref, { questions: [] }));
+    await assertFails(updateDoc(ref, { subject: 'Something easier' }));
+    await assertFails(updateDoc(ref, { status: 'completed', score: 5, outOf: 5, title: 'Changed' }));
+  });
+
+  it('a student cannot claim a score higher than the total', async () => {
+    await assertFails(
+      updateDoc(doc(student(), 'students', OWN_USN, 'activities', 'a1'), {
+        status: 'completed', score: 99, outOf: 5, attemptedAt: '2026-03-10T10:00:00.000Z',
+      }),
+    );
+  });
+
+  it('a student cannot invent an activity', async () => {
+    await assertFails(
+      setDoc(doc(student(), 'students', OWN_USN, 'activities', 'invented'), {
+        kind: 'quiz', status: 'completed', score: 10, outOf: 10,
+      }),
+    );
+  });
+
+  it('a student cannot touch another student’s activity', async () => {
+    await assertFails(
+      updateDoc(doc(student(), 'students', OTHER_USN, 'activities', 'a1'), {
+        status: 'completed', score: 1, outOf: 5, attemptedAt: '2026-03-10T10:00:00.000Z',
+      }),
+    );
   });
 });

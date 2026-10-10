@@ -22,12 +22,15 @@ export function StudentActions({
   hasParentContact,
   parentLanguage,
   hasSnapshot,
+  missedTasks = 0,
 }: {
   usn: string;
   studentName: string;
   hasParentContact: boolean;
   parentLanguage: string;
   hasSnapshot: boolean;
+  /** Overdue planned tasks, used to offer the right call wording. */
+  missedTasks?: number;
 }) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>('none');
@@ -232,11 +235,14 @@ export function StudentActions({
           onSubmit={(event) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
+            // `missed_work` is a wording choice, not a new call purpose —
+            // to the agent and the record it is a progress update.
+            const purpose = form.get('purpose');
             void post(
               '/api/calls',
               {
                 usn,
-                purpose: form.get('purpose'),
+                purpose: purpose === 'missed_work' ? 'risk_update' : purpose,
                 approvedMessage: form.get('approvedMessage'),
               },
               'Call',
@@ -262,17 +268,25 @@ export function StudentActions({
                 'approvedMessage',
               ) as HTMLTextAreaElement | null;
               if (!field) return;
-              field.value =
-                event.target.value === 'absence'
-                  ? `${firstName} was absent from college today. Please make sure they attend tomorrow.`
-                  : event.target.value === 'ptm'
-                    ? `There is a parent-teacher meeting about ${firstName} on 20 March at 10am. Can you attend?`
-                    : `${firstName} has been attending more regularly this month. Thank you for your support.`;
+              // Plain, factual wording. A parent call reports a fact and asks
+              // for support; it never accuses a child or threatens anything.
+              const messages: Record<string, string> = {
+                absence: `${firstName} was absent from college today. Please make sure they attend tomorrow.`,
+                ptm: `There is a parent-teacher meeting about ${firstName} on 20 March at 10am. Can you attend?`,
+                risk_update: `${firstName} has been attending more regularly this month. Thank you for your support.`,
+                missed_work:
+                  `${firstName} agreed a study plan with the college and ${missedTasks} of the ` +
+                  'tasks are still pending. Please encourage them to catch up this week.',
+              };
+              field.value = messages[event.target.value] ?? messages.absence!;
             }}
           >
             <option value="absence">Absence</option>
             <option value="ptm">Parent–teacher meeting</option>
             <option value="risk_update">Progress update</option>
+            {missedTasks > 0 ? (
+              <option value="missed_work">Missed agreed work ({missedTasks})</option>
+            ) : null}
           </select>
 
           <label className="text-label text-ink-muted mt-3 block" htmlFor="approvedMessage">

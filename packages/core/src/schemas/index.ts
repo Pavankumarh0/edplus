@@ -4,6 +4,7 @@ export * from './student';
 export * from './records';
 export * from './snapshot';
 export * from './intervention';
+export * from './plan';
 export * from './task';
 export * from './report';
 export * from './call';

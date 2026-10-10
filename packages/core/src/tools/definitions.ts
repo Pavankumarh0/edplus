@@ -37,6 +37,7 @@ import { getRiskRules } from '../repositories/config';
 import { prioritise, type PrioritisableStudent } from '../risk/prioritise';
 import { projectRisk } from '../risk/project';
 import type { ToolDefinition } from './types';
+import { STUDENT_TOOLS } from './student-tools';
 
 const COLLEGE_NAME = process.env.COLLEGE_NAME ?? 'the college';
 
@@ -383,8 +384,15 @@ const createStudentTasksTool: ToolDefinition<
       taskId: `task_${input.usn}_${stamp}_${index}`,
       usn: input.usn,
       interventionId: input.interventionId ?? null,
+      planId: null,
       title: task.title,
       description: task.description,
+      // A mentor's task is something to do, not a quiz or a coding exercise,
+      // and it carries a deadline rather than a day on the calendar.
+      kind: 'study',
+      scheduledFor: task.dueDate ?? null,
+      minutes: null,
+      activityId: null,
       dueDate: task.dueDate,
       done: false,
       doneAt: null,
@@ -539,8 +547,15 @@ const scheduleParentCallTool: ToolDefinition<
   },
 };
 
-/** Every tool in the system, keyed by name. */
+/**
+ * Every tool in the system, keyed by name.
+ *
+ * Faculty tools take a `usn`; the student tools spread in below take none and
+ * read the student from the actor instead, which is what confines Planly to
+ * the student it was launched for.
+ */
 export const TOOLS: Record<string, ToolDefinition<any, any>> = {
+  ...STUDENT_TOOLS,
   get_student: getStudentTool,
   get_student_history: getStudentHistoryTool,
   list_at_risk_students: listAtRiskTool,

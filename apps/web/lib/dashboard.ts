@@ -1,5 +1,6 @@
 import 'server-only';
 import {
+  computeAdherence,
   countByLevel,
   needsDataEntry,
   prioritise,
@@ -9,7 +10,10 @@ import {
   type PrioritisableStudent,
   type RiskRules,
   type RiskSnapshot,
+  type Adherence,
+  type Activity,
   type Student,
+  type StudyPlan,
 } from '@eduplus/core';
 import { getStudentAccount, type StudentAccount } from './student-account';
 import {
@@ -22,7 +26,9 @@ import {
   getRecords,
   getRiskRules,
   getSnapshotHistory,
+  getActivePlan,
   getStudent,
+  listActivities,
   listCalls,
   listInterventions,
   listRecentUploads,
@@ -128,6 +134,16 @@ export interface StudentDetailData {
   parent: Awaited<ReturnType<typeof getParentContact>>;
   /** Whether this student can actually use the mobile app. */
   account: StudentAccount;
+  /** Planly's current plan, if the student has asked for one. */
+  plan: StudyPlan | null;
+  /**
+   * Effort against that plan. Reported BESIDE the risk level and never folded
+   * into it: a student at At Risk with 90% adherence needs time and
+   * encouragement, the same student at 10% needs a different conversation, and
+   * the score alone cannot tell those apart.
+   */
+  adherence: Adherence;
+  activities: Activity[];
 }
 
 export async function getStudentDetail(usn: string): Promise<StudentDetailData | null> {
@@ -148,7 +164,11 @@ export async function getStudentDetail(usn: string): Promise<StudentDetailData |
       getParentContact(db, usn),
     ]);
 
-  const account = await getStudentAccount(usn, student.authUid);
+  const [account, plan, activities] = await Promise.all([
+    getStudentAccount(usn, student.authUid),
+    getActivePlan(db, usn),
+    listActivities(db, usn),
+  ]);
 
   return {
     student,
@@ -166,6 +186,9 @@ export async function getStudentDetail(usn: string): Promise<StudentDetailData |
     recordCount: records.length,
     parent,
     account,
+    plan,
+    adherence: computeAdherence(tasks, new Date().toISOString().slice(0, 10)),
+    activities,
   };
 }
 

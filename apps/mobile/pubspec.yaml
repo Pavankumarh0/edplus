@@ -18,6 +18,10 @@ dependencies:
 
   intl: ^0.20.1
 
+  # Planly runs server-side (it needs an API key), so the app calls it over
+  # HTTP with its Firebase ID token.
+  http: ^1.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

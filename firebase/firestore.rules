@@ -92,6 +92,31 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // ── Study plans (Planly) ──────────────────────────────────────────
+      // Written only by the server, on the student's behalf. Readable by the
+      // student and by faculty, who need to see whether the plan is being
+      // followed.
+      match /plans/{planId} {
+        allow get, list: if canReadStudent(usn);
+        allow write: if false;
+      }
+
+      // ── Practice activities ───────────────────────────────────────────
+      // The one place besides tasks where a student writes: recording their
+      // own attempt. They may set the result fields and nothing else — not the
+      // questions, not the answers, not which subject it belongs to.
+      match /activities/{activityId} {
+        allow get, list: if canReadStudent(usn);
+        allow create, delete: if false;
+        allow update: if ownsStudent(usn)
+                      && onlyChanges(['status', 'score', 'outOf', 'attemptedAt'])
+                      && request.resource.data.status == 'completed'
+                      && request.resource.data.score is int
+                      && request.resource.data.outOf is int
+                      && request.resource.data.score >= 0
+                      && request.resource.data.score <= request.resource.data.outOf;
+      }
+
       // ── Recovery tasks ────────────────────────────────────────────────
       // The one place a student may write: ticking their own task off.
       // They may change `done` and `doneAt` and nothing else — not the title,

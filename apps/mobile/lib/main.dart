@@ -6,9 +6,9 @@ import 'data.dart';
 import 'firebase_options.dart';
 import 'screens/home.dart';
 import 'screens/login.dart';
+import 'screens/planly.dart';
 import 'screens/progress.dart';
-import 'screens/report.dart';
-import 'screens/tasks.dart';
+import 'screens/schedule.dart';
 import 'theme.dart';
 
 Future<void> main() async {
@@ -141,10 +141,13 @@ class StudentShell extends StatefulWidget {
 class _StudentShellState extends State<StudentShell> {
   int _index = 0;
 
+  // Schedule replaces the old Tasks tab: it shows the same tasks, but on the
+  // day they are meant to be done, which is the question a student actually
+  // has. Planly gets its own tab because it is the thing that fills it.
   static const _tabs = [
     (icon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.description_rounded, label: 'Report'),
-    (icon: Icons.checklist_rounded, label: 'Tasks'),
+    (icon: Icons.calendar_today_rounded, label: 'Schedule'),
+    (icon: Icons.auto_awesome_rounded, label: 'Planly'),
     (icon: Icons.show_chart_rounded, label: 'Progress'),
   ];
 
@@ -154,8 +157,8 @@ class _StudentShellState extends State<StudentShell> {
 
     final screens = [
       HomeScreen(data: data),
-      ReportScreen(data: data),
-      TasksScreen(data: data),
+      ScheduleScreen(data: data),
+      PlanlyScreen(data: data),
       ProgressScreen(data: data),
     ];
 

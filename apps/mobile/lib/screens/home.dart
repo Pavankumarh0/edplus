@@ -4,6 +4,7 @@ import '../data.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'account.dart';
+import 'report.dart';
 
 /// The student's own position, in plain words.
 ///
@@ -43,13 +44,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Hello, $firstName', style: EduText.h1),
-                          const SizedBox(height: 2),
-                          Text(widget.data.usn, style: EduText.bodySm),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hello, $firstName',
+                              style: EduText.h1,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(widget.data.usn, style: EduText.bodySm),
+                          ],
+                        ),
                       ),
                       IconButton(
                         tooltip: 'Account',
@@ -86,6 +94,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: _TodayTasks(data: widget.data),
+                ),
+                const SizedBox(height: 14),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ReportScreen(data: widget.data),
+                      ),
+                    ),
+                    icon: const Icon(Icons.description_rounded, size: 18),
+                    label: const Text('Read your report'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      foregroundColor: EduColors.ink,
+                      side: const BorderSide(color: EduColors.hairline),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(EduRadius.control),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             );
@@ -153,6 +183,7 @@ class _StatusCard extends StatelessWidget {
               if (delta != null && delta.abs() >= 2) ...[
                 const SizedBox(height: 12),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       delta < 0 ? Icons.trending_down_rounded : Icons.trending_up_rounded,
@@ -160,11 +191,15 @@ class _StatusCard extends StatelessWidget {
                       color: EduColors.textFor(delta < 0 ? 'stable' : 'critical'),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      delta < 0
-                          ? 'Down ${delta.abs().toStringAsFixed(1)} points since last time — that is progress.'
-                          : 'Up ${delta.abs().toStringAsFixed(1)} points since last time.',
-                      style: EduText.bodySm.copyWith(color: EduColors.ink),
+                    // Expanded, because this sentence is long and the card is
+                    // only as wide as a phone.
+                    Expanded(
+                      child: Text(
+                        delta < 0
+                            ? 'Down ${delta.abs().toStringAsFixed(1)} points since last time — that is progress.'
+                            : 'Up ${delta.abs().toStringAsFixed(1)} points since last time.',
+                        style: EduText.bodySm.copyWith(color: EduColors.ink),
+                      ),
                     ),
                   ],
                 ),
@@ -176,9 +211,11 @@ class _StatusCard extends StatelessWidget {
                 children: [
                   Text(score.toStringAsFixed(1), style: EduText.metric),
                   const SizedBox(width: 8),
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 5),
-                    child: Text('risk score · lower is better', style: EduText.bodySm),
+                  const Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: 5),
+                      child: Text('risk score · lower is better', style: EduText.bodySm),
+                    ),
                   ),
                 ],
               ),
