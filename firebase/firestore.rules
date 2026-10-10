@@ -1,0 +1,155 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EduPlus AI — Firestore security rules
+//
+// Two principals reach Firestore from a client:
+//   faculty  — custom claim role == 'faculty'
+//   student  — custom claim role == 'student', plus claim usn == their USN
+//
+// The Next.js API routes, the MCP server and the voice service all use the
+// Admin SDK, which bypasses these rules entirely. So these rules exist to
+// constrain the browser and the Flutter app — nothing else.
+//
+// DESIGN NOTE — why parent contacts live in a subcollection:
+// Firestore rules authorise whole documents, never individual fields. There is
+// no way to serve students/{usn} to a student while withholding one field from
+// it. So parent name/phone/language live in students/{usn}/private/parent,
+// which students cannot read at all. Putting them on the student document and
+// "just not displaying them" would ship every parent's phone number to every
+// student's device.
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function claims() {
+      return request.auth.token;
+    }
+
+    function isFaculty() {
+      return isSignedIn() && claims().role == 'faculty';
+    }
+
+    function isStudent() {
+      return isSignedIn() && claims().role == 'student';
+    }
+
+    // A student acts only on their own USN, taken from a custom claim set at
+    // sign-up. Reading it from a claim rather than a document keeps this a
+    // pure token check — no extra read, and nothing a client can forge.
+    function ownsStudent(usn) {
+      return isStudent() && claims().usn == usn;
+    }
+
+    function canReadStudent(usn) {
+      return isFaculty() || ownsStudent(usn);
+    }
+
+    // True when an update touches only the listed fields.
+    function onlyChanges(allowed) {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(allowed);
+    }
+
+    // ── Students ──────────────────────────────────────────────────────────
+    // Readable by faculty, or by the student it describes. Carries no parent
+    // contact data (see the design note above).
+    match /students/{usn} {
+      allow get, list: if canReadStudent(usn);
+      // All writes go through the Admin SDK during import. Faculty never edit
+      // student records directly from the browser.
+      allow create, update, delete: if false;
+
+      // ── Parent contact — faculty and server only, never the student ────
+      match /private/{document=**} {
+        allow read: if isFaculty();
+        allow write: if false;
+      }
+
+      // ── Academic records ──────────────────────────────────────────────
+      match /records/{recordId} {
+        allow get, list: if canReadStudent(usn);
+        allow write: if false;  // importer only
+      }
+
+      // ── Risk snapshots (the progress history) ─────────────────────────
+      // Read-only to everyone. A score that a client could write would be
+      // worthless as evidence.
+      match /snapshots/{snapshotId} {
+        allow get, list: if canReadStudent(usn);
+        allow write: if false;
+      }
+
+      // ── Claude's reports ──────────────────────────────────────────────
+      match /reports/{reportId} {
+        allow get, list: if canReadStudent(usn);
+        allow write: if false;
+      }
+
+      // ── Recovery tasks ────────────────────────────────────────────────
+      // The one place a student may write: ticking their own task off.
+      // They may change `done` and `doneAt` and nothing else — not the title,
+      // not the due date, not which intervention it belongs to.
+      match /tasks/{taskId} {
+        allow get, list: if canReadStudent(usn);
+        allow create, delete: if false;
+        allow update: if ownsStudent(usn)
+                      && onlyChanges(['done', 'doneAt'])
+                      && request.resource.data.done is bool;
+      }
+    }
+
+    // ── Interventions ─────────────────────────────────────────────────────
+    // Faculty-only. The student-facing view of an intervention is its tasks,
+    // which are written in language meant for the student; `reason` is written
+    // for a mentor and is not something to hand a student unmediated.
+    match /interventions/{interventionId} {
+      allow get, list: if isFaculty();
+      allow write: if false;
+    }
+
+    // ── Parent calls ──────────────────────────────────────────────────────
+    // Faculty only. Transcripts of conversations with a parent are never
+    // exposed to the student.
+    match /calls/{callId} {
+      allow get, list: if isFaculty();
+      allow write: if false;
+    }
+
+    // ── Uploads ───────────────────────────────────────────────────────────
+    match /uploads/{uploadId} {
+      allow get, list: if isFaculty();
+      allow write: if false;
+    }
+
+    // ── Configuration ─────────────────────────────────────────────────────
+    // Any signed-in user may read the rules in force, so the student app can
+    // show "the attendance threshold is 75%" alongside their own figure.
+    // Only the server may change them, because a rules edit re-scores
+    // everyone and bumps rulesVersion.
+    match /config/{document} {
+      allow get, list: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ── Audit log ─────────────────────────────────────────────────────────
+    // No client reads this, ever. It records every tool call including
+    // redacted arguments, and it is append-only from the server.
+    match /audit/{auditId} {
+      allow read, write: if false;
+    }
+
+    // ── Default deny ──────────────────────────────────────────────────────
+    // Anything not matched above is denied. Adding a collection without
+    // adding a rule for it fails closed, not open.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

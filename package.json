@@ -1,0 +1,45 @@
+{
+  "name": "eduplus-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EduPlus AI \u2014 early academic-risk identification and intervention tracking (CBC 2.0 \u00b7 PS-055)",
+  "workspaces": [
+    "packages/core",
+    "apps/web",
+    "services/mcp",
+    "services/voice"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @eduplus/core && npm run build --workspace @eduplus/mcp && npm run build --workspace @eduplus/voice",
+    "dev": "npm run dev --workspace @eduplus/web",
+    "dev:voice": "npm run dev --workspace @eduplus/voice",
+    "dev:mcp": "npm run dev --workspace @eduplus/mcp",
+    "test": "vitest run",
+    "test:watch": "npm run test:watch --workspace @eduplus/core",
+    "test:rules": "node firebase/kill-emulators.mjs && firebase emulators:exec --only firestore \"npx vitest run --config vitest.rules.config.mts\"",
+    "typecheck": "tsc -b packages/core apps/web services/mcp services/voice",
+    "seed": "tsx --env-file-if-exists=.env.local firebase/seed.ts",
+    "demo:reset": "tsx --env-file-if-exists=.env.local firebase/demo-reset.ts",
+    "rules:deploy": "firebase deploy --only firestore:rules,firestore:indexes",
+    "emulators": "node firebase/kill-emulators.mjs && firebase emulators:start --only firestore,auth",
+    "seed:emulator": "node firebase/kill-emulators.mjs && firebase emulators:exec --only firestore,auth \"npx tsx --env-file-if-exists=.env.local --env-file=.env.emulator firebase/seed.ts\"",
+    "demo:reset:emulator": "node firebase/kill-emulators.mjs && firebase emulators:exec --only firestore,auth \"npx tsx --env-file-if-exists=.env.local --env-file=.env.emulator firebase/demo-reset.ts --yes\"",
+    "emulators:kill": "node firebase/kill-emulators.mjs",
+    "check:contrast": "vitest run packages/core/src/design/tokens.test.ts"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@types/node": "^22.10.2",
+    "firebase": "^13.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.6",
+    "uuid": "^11.1.1"
+  }
+}

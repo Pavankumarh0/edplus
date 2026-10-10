@@ -1,0 +1,9 @@
+USN,Student Name,Subject,Marks Obtained,Max Marks,Date,Parent Name,Parent Phone
+1OX21IS001,Aarav Sharma,DBMS,39,50,2026-03-01,Rajesh Sharma,9876543210
+1OX21IS002,Diya Nair,DBMS,,50,2026-03-01,Suresh Nair,9876501234
+1OX21IS003,Vihaan Gowda,DBMS,60,50,2026-03-01,Prakash Gowda,9845012345
+,Nameless Student,DBMS,30,50,2026-03-01,Someone,9845123456
+1OX21IS005,Arjun Patel,DBMS,absent,50,2026-03-01,Nitin Patel,9823456789
+1OX21IS006,Saanvi Iyer,DBMS,34,50,2026-03-01,Ganesh Iyer,12345
+1OX21IS007,Kabir Singh,DBMS,22,50,2026-03-01,Harpreet Singh,9876512345
+1OX21IS007,Kabir Singh,DBMS,27,50,2026-03-01,Harpreet Singh,9876512345

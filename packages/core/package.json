@@ -1,0 +1,57 @@
+{
+  "name": "@eduplus/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./risk": {
+      "types": "./src/risk/index.ts",
+      "default": "./src/risk/index.ts"
+    },
+    "./schemas": {
+      "types": "./src/schemas/index.ts",
+      "default": "./src/schemas/index.ts"
+    },
+    "./tools": {
+      "types": "./src/tools/index.ts",
+      "default": "./src/tools/index.ts"
+    },
+    "./csv": {
+      "types": "./src/csv/index.ts",
+      "default": "./src/csv/index.ts"
+    },
+    "./prompts": {
+      "types": "./src/prompts/index.ts",
+      "default": "./src/prompts/index.ts"
+    },
+    "./repositories": {
+      "types": "./src/repositories/index.ts",
+      "default": "./src/repositories/index.ts"
+    },
+    "./design": {
+      "types": "./src/design/index.ts",
+      "default": "./src/design/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.10.0",
+    "papaparse": "^5.7.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.5.2",
+    "vitest": "^5.0.3"
+  }
+}
