@@ -15,10 +15,18 @@ are what to actually say.
 | **Student** (mobile app) | `ananya@eduplus.local` | `eduplus-demo` | 1OX21IS045 |
 | Pavan Kumar H — **real parent phone** | `pavan@eduplus.local` | `eduplus-demo` | 1OX21IS050 |
 | Yadava HC — **real parent phone** | `yadava@eduplus.local` | `eduplus-demo` | 1OX21IS051 |
+| Bhavani Patil — **real parent phone** | `bhavani@eduplus.local` | `eduplus-demo` | 1OX21IS052 |
 | Aarav Sharma (stable, spare) | `aarav@eduplus.local` | `eduplus-demo` | 1OX21IS001 |
 
-**Pavan and Yadava are the two to call** — their parent contacts are real
-numbers. Everyone else has an invented one; see the warning below.
+**Pavan, Yadava and Bhavani are the three to call** — their parent contacts are
+real numbers. Everyone else has an invented one; see the warning below.
+
+> **If a real call does not ring:** check the Vobiz call record rather than the
+> code. A `Busy Line` cause from `hangup_source: Carrier`, with `bill_duration: 0`
+> and no `answer_time`, means the network refused it — on Indian mobiles that is
+> usually DND, which blocks automated calls and reports them as busy. The call
+> panel now says so instead of a bare "no answer". Use the simulator if the
+> number cannot be cleared in time.
 
 Students change their own password from the **Account** screen in the app
 (tap the avatar on Home). Faculty never see it — the student page shows only

@@ -18,6 +18,18 @@ interface Turn {
   text: string;
 }
 
+/** Raw statuses are database values; a presenter should not have to read them. */
+const STATUS_LABELS: Record<string, string> = {
+  queued: 'Queued',
+  approved: 'Approved',
+  dialing: 'Dialling…',
+  in_progress: 'Connected',
+  completed: 'Call ended',
+  failed: 'Could not be placed',
+  no_answer: 'Not answered',
+  cancelled: 'Cancelled',
+};
+
 const KEYPADS: Record<string, [string, string][]> = {
   ptm: [
     ['1', 'Can attend'],
@@ -195,7 +207,7 @@ export function CallPanel({
                   {answered?.parentName ?? 'Parent'}
                 </p>
                 <p className="mt-1 text-[13px] opacity-75">
-                  {status}
+                  {STATUS_LABELS[status] ?? status}
                   {answered ? ` · ${answered.language}` : ''}
                 </p>
               </div>
@@ -208,10 +220,31 @@ export function CallPanel({
           </div>
 
           <div className="max-h-[46vh] overflow-y-auto px-6 py-4">
-            {provider === 'vobiz' && turns.length === 0 ? (
+            {provider === 'vobiz' && turns.length === 0 && !finished ? (
               <p className="text-body-sm text-ink-muted">
                 The parent&rsquo;s phone is ringing. What they press will appear here.
               </p>
+            ) : null}
+
+            {provider === 'vobiz' && finished && !outcome ? (
+              <div
+                className="text-body-sm rounded-[var(--radius-control)] px-3 py-2"
+                style={{
+                  color: 'var(--color-level-watch)',
+                  background: 'var(--color-level-watch-fill)',
+                }}
+              >
+                <p className="font-medium">The call did not connect.</p>
+                <p className="mt-1">
+                  {error ??
+                    'The carrier ended it before it was answered. The call itself was placed correctly.'}
+                </p>
+                <p className="mt-2 opacity-80">
+                  On Indian mobiles this is most often DND: an automated call to a
+                  DND-registered number is refused by the network and reported as busy.
+                  Try a number with DND switched off, or use the simulator for the demo.
+                </p>
+              </div>
             ) : null}
 
             <ul className="space-y-2">
@@ -245,7 +278,7 @@ export function CallPanel({
               </Button>
             ) : null}
 
-            {error ? (
+            {error && !(provider === 'vobiz' && finished && !outcome) ? (
               <p
                 role="alert"
                 className="text-body-sm mt-3 rounded-[var(--radius-control)] px-3 py-2"

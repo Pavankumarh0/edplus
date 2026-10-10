@@ -76,6 +76,20 @@ const STUDENTS: DemoStudent[] = [
     march: [44, 24, 33],
     april: [52, 31, 50],
   },
+  {
+    usn: '1OX21IS052',
+    name: 'Bhavani Patil',
+    section: 'B',
+    email: 'bhavani@eduplus.local',
+    password: 'eduplus-demo',
+    parentName: 'Parent of Bhavani',
+    parentPhone: '+918971016349',
+    parentLanguage: 'kn-IN',
+    // Attendance is fine, assessments are not — the conflict case, so she also
+    // demonstrates escalation rather than just being another at-risk student.
+    march: [88, 28, 83],
+    april: [91, 34, 83],
+  },
 ];
 
 function countOf(percent: number, total: number): number {

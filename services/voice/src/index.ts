@@ -396,17 +396,55 @@ app.post('/vobiz/gather', async (request, reply) => {
   }
 });
 
-/** The call ended. */
+const HangupBody = z
+  .object({
+    HangupCause: z.string().optional(),
+    HangupCauseName: z.string().optional(),
+    HangupCauseCode: z.union([z.string(), z.number()]).optional(),
+    HangupSource: z.string().optional(),
+    Duration: z.union([z.string(), z.number()]).optional(),
+    CallStatus: z.string().optional(),
+  })
+  .passthrough();
+
+/**
+ * The call ended.
+ *
+ * Records WHY. A bare "no answer" is the least useful thing to show a faculty
+ * member standing next to a phone that never rang: the carrier's own reason —
+ * busy, rejected, out of service — is what tells them whether to try again,
+ * try a different number, or stop. On Indian mobiles an automated call to a
+ * DND-registered number is commonly refused by the carrier AS "busy", which
+ * looks identical to a genuine busy line unless the cause is surfaced.
+ */
 app.post('/vobiz/hangup', async (request, reply) => {
   const query = CallIdQuery.safeParse(request.query);
   if (query.success) {
     const db = getDb();
     const call = await getCall(db, query.data.callId);
+    const body = HangupBody.safeParse(request.body ?? {});
+    const detail = body.success ? body.data : {};
+
+    const cause = detail.HangupCauseName ?? detail.HangupCause ?? null;
+    const source = detail.HangupSource ?? null;
+    const answered = Number(detail.Duration ?? 0) > 0;
+
+    app.log.info(
+      { callId: query.data.callId, cause, source, duration: detail.Duration },
+      'call ended',
+    );
+
     // Only close a call that never reached an outcome — never overwrite one.
     if (call && call.status !== 'completed') {
       await updateCall(db, query.data.callId, {
-        status: call.parentResponse ? 'completed' : 'no_answer',
+        status: call.parentResponse ? 'completed' : answered ? 'completed' : 'no_answer',
         endedAt: new Date().toISOString(),
+        failureReason: call.parentResponse
+          ? null
+          : cause
+            ? `${cause}${source ? ` (reported by ${source.toLowerCase()})` : ''}. ` +
+              'The call was placed but never connected.'
+            : 'The call was placed but nobody answered.',
       });
     }
   }
