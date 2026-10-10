@@ -35,6 +35,11 @@ if (process.env.EDUPLUS_EMULATOR === '1') {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Next 16 blocks cross-origin requests to dev resources. Browsing the app at
+  // 127.0.0.1 while Next considers the origin "localhost" silently blocks HMR
+  // and the client chunks, so the page renders but never hydrates — forms look
+  // dead and submit natively. Allow both spellings of loopback.
+  allowedDevOrigins: ['localhost', '127.0.0.1', '0.0.0.0'],
   // NEXT_PUBLIC_* values are inlined into the client bundle from the env at
   // build time. Listing them explicitly here is what makes the ones we set
   // above (rather than in a .env file Next reads itself) actually reach the

@@ -426,12 +426,16 @@ student record.
 | Hours | Deliverable | State |
 |---|---|---|
 | 0–1 | Repo, skills, design tokens, Firebase, env, schemas | done |
-| 1–5 | CSV import + auto-mapping + Firestore + seed data | |
-| 5–8 | Risk engine + configurable rules + snapshots + prioritised dashboard | engine done (74 tests) |
-| 8–10 | Interventions + progress history + before/after | outcome logic done |
-| 10–12 | Tool registry + MCP server + Report Agent + Copilot | |
-| 12–15 | Voice Tier 1 (Vobiz + Sarvam) + SimulatedProvider | |
-| 15–18 | Flutter student app | |
-| 18–20 | Polish, tests, Playwright run, DEMO.md, rehearse | |
+| 1–5 | CSV import + auto-mapping + Firestore + seed data | done |
+| 5–8 | Risk engine + configurable rules + snapshots + prioritised dashboard | done |
+| 8–10 | Interventions + progress history + before/after | done |
+| 10–12 | Tool registry + MCP server + Report Agent + Copilot | done |
+| 12–15 | Voice Tier 1 (Vobiz + Sarvam) + SimulatedProvider | done |
+| 15–18 | Flutter student app | done |
+| 18–20 | Polish, tests, DEMO.md, rehearse | tests done; rehearsal pending |
+
+**Test coverage:** 196 unit tests (engine, CSV, tool permissions, design
+tokens), 48 emulator tests (Firestore rules, tool layer integration), 7 Flutter
+widget tests. `npm run verify` runs typecheck plus the unit suite.
 
 **Out of scope:** Telegram bot, ESP32/IoT hardware, parent app.

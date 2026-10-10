@@ -32,6 +32,7 @@ export function StudentActions({
   const [panel, setPanel] = useState<Panel>('none');
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [simulatorUrl, setSimulatorUrl] = useState<string | null>(null);
 
   const firstName = studentName.split(/\s+/)[0] ?? studentName;
 
@@ -47,9 +48,11 @@ export function StudentActions({
       const json = (await response.json().catch(() => ({}))) as {
         error?: string;
         message?: string;
+        simulatorUrl?: string | null;
       };
       if (!response.ok) throw new Error(json.error ?? `${label} failed.`);
       setMessage({ kind: 'ok', text: json.message ?? `${label} done.` });
+      setSimulatorUrl(json.simulatorUrl ?? null);
       setPanel('none');
       router.refresh();
     } catch (caught) {
@@ -106,6 +109,19 @@ export function StudentActions({
           }
         >
           {message.text}
+          {simulatorUrl ? (
+            <>
+              {' '}
+              <a
+                href={simulatorUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium underline underline-offset-2"
+              >
+                Open the simulator
+              </a>
+            </>
+          ) : null}
         </p>
       ) : null}
 

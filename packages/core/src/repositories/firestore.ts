@@ -84,14 +84,34 @@ export function getAdminApp(env: NodeJS.ProcessEnv = process.env): App {
 
 let cachedDb: Firestore | null = null;
 
-/** The shared Firestore handle. */
+/**
+ * The shared Firestore handle.
+ *
+ * `settings()` may be called at most once per Firestore instance, and only
+ * before any other method. A module-level cache is not enough to guarantee
+ * that: Next.js dev builds, route handlers and server components can each get
+ * their own copy of this module, while `getFirestore(app)` hands all of them
+ * the SAME underlying instance. The second registry would then call
+ * `settings()` on an already-configured object and throw.
+ *
+ * So the call is attempted and the "already initialized" case is treated as
+ * success — the setting we wanted is, by definition, already applied.
+ */
 export function getDb(env: NodeJS.ProcessEnv = process.env): Firestore {
   if (cachedDb) return cachedDb;
+
   const app = getAdminApp(env);
   const db = getFirestore(app);
-  // Undefined fields are dropped rather than throwing, so an optional field
-  // left unset by a CSV import does not abort the whole write.
-  db.settings({ ignoreUndefinedProperties: true });
+
+  try {
+    // Undefined fields are dropped rather than throwing, so an optional field
+    // left unset by a CSV import does not abort the whole write.
+    db.settings({ ignoreUndefinedProperties: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/already been initialized|already initialized/i.test(message)) throw error;
+  }
+
   cachedDb = db;
   return db;
 }

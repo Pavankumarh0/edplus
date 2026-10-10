@@ -1,0 +1,22 @@
+{
+  "name": "@eduplus/mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": { "eduplus-mcp": "./dist/index.js" },
+  "scripts": {
+    "dev": "tsx --env-file-if-exists=../../.env.local src/index.ts",
+    "dev:emulator": "tsx --env-file-if-exists=../../.env.local --env-file=../../.env.emulator src/index.ts",
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@eduplus/core": "*",
+    "@modelcontextprotocol/sdk": "^1.21.1",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { Sidebar } from '@/components/Sidebar';
+import { Copilot } from '@/components/Copilot';
 
 /**
  * Auth gate for every dashboard route.
@@ -46,6 +47,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <main className="px-4 pb-24 pt-6 md:ml-[72px] md:px-8 md:pb-10">
         <div className="mx-auto max-w-[1440px]">{children}</div>
       </main>
+      {/* Available on every dashboard page, per the brief. */}
+      <Copilot />
     </div>
   );
 }

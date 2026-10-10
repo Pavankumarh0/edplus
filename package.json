@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "npm run test:watch --workspace @eduplus/core",
     "test:rules": "node firebase/kill-emulators.mjs && firebase emulators:exec --only firestore \"npx vitest run --config vitest.rules.config.mts\"",
-    "typecheck": "tsc -b packages/core apps/web services/mcp services/voice",
+    "typecheck": "npm run typecheck --workspace @eduplus/core && npm run typecheck --workspace @eduplus/web && npm run typecheck --workspace @eduplus/mcp && npm run typecheck --workspace @eduplus/voice",
     "seed": "tsx --env-file-if-exists=.env.local firebase/seed.ts",
     "demo:reset": "tsx --env-file-if-exists=.env.local firebase/demo-reset.ts",
     "rules:deploy": "firebase deploy --only firestore:rules,firestore:indexes",
@@ -27,7 +27,11 @@
     "emulators:kill": "node firebase/kill-emulators.mjs",
     "check:contrast": "vitest run packages/core/src/design/tokens.test.ts",
     "test:integration": "node firebase/kill-emulators.mjs && firebase emulators:exec --only firestore \"npx vitest run --config vitest.rules.config.mts\"",
-    "dev:emulator": "node -e \"process.env.EDUPLUS_EMULATOR=1;const{spawnSync}=require('child_process');process.exit(spawnSync(process.platform==='win32'?'npm.cmd':'npm',['run','dev','--workspace','@eduplus/web'],{stdio:'inherit',env:process.env}).status??1)\""
+    "dev:emulator": "node -e \"process.env.EDUPLUS_EMULATOR=1;const{spawnSync}=require('child_process');process.exit(spawnSync(process.platform==='win32'?'npm.cmd':'npm',['run','dev','--workspace','@eduplus/web'],{stdio:'inherit',env:process.env}).status??1)\"",
+    "dev:voice:emulator": "npm run dev:emulator --workspace @eduplus/voice",
+    "dev:mcp:emulator": "npm run dev:emulator --workspace @eduplus/mcp",
+    "test:flutter": "cd apps/mobile && flutter test",
+    "verify": "npm run typecheck && npm run test"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",
