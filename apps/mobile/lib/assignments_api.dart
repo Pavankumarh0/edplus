@@ -83,3 +83,51 @@ class AssignmentsApi {
     );
   }
 }
+
+/// Recording a classroom exit.
+///
+/// Separate from assignments because it is a different kind of thing: an
+/// assignment code is meant to be shared and lasts for days, an exit code is a
+/// momentary credential that rotates every few seconds.
+class ExitApi {
+  ExitApi({String? baseUrl})
+      : baseUrl = (baseUrl ?? AppConfig.apiBase).replaceAll(RegExp(r'/+$'), '');
+
+  final String baseUrl;
+
+  /// Sends a scanned payload. The server decides everything that matters:
+  /// whether the code is still valid, whether this student's class is the one
+  /// the session is for, and what time it is.
+  Future<({String message, bool repeat})> verify(String payload) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw PlanlyException('You are signed out. Sign in again.');
+    final token = await user.getIdToken();
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/api/exit-sessions/verify'),
+            headers: {
+              'content-type': 'application/json',
+              'authorization': 'Bearer $token',
+              'ngrok-skip-browser-warning': 'true',
+            },
+            body: jsonEncode({'payload': payload}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode >= 400) {
+        throw PlanlyException((decoded['error'] as String?) ?? 'That code was not accepted.');
+      }
+      return (
+        message: (decoded['message'] as String?) ?? 'Exit recorded.',
+        repeat: decoded['repeat'] == true,
+      );
+    } on PlanlyException {
+      rethrow;
+    } catch (_) {
+      throw PlanlyException('Could not reach EduPlus. Check your connection.');
+    }
+  }
+}

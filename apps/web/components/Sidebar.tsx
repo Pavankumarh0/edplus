@@ -70,6 +70,16 @@ const NAV: NavItem[] = [
     ),
   },
   {
+    href: '/exit',
+    label: 'Classroom exit',
+    icon: (
+      <svg viewBox="0 0 24 24" width="20" height="20" {...stroke}>
+        <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+        <path d="M10 8 6 12l4 4M6 12h9" />
+      </svg>
+    ),
+  },
+  {
     href: '/interventions',
     label: 'Interventions',
     icon: (

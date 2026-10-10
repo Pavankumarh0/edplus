@@ -20,6 +20,7 @@ class AssignmentsScreen extends StatefulWidget {
 
 class _AssignmentsScreenState extends State<AssignmentsScreen> {
   final _api = AssignmentsApi();
+  final _exit = ExitApi();
   List<Map<String, dynamic>>? _assignments;
   String? _error;
   bool _busy = false;
@@ -62,6 +63,76 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
         SnackBar(
           content: Text(caught is PlanlyException ? caught.message : 'Could not open that code.'),
           backgroundColor: EduColors.ink,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+
+  /// Scan the rotating code a mentor shows at the end of a session.
+  ///
+  /// Nothing about the result is decided here. The app sends what it read and
+  /// shows what it is told — a phone cannot talk itself into a verification.
+  Future<void> _scanExit() async {
+    final payload = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const _ScannerScreen()),
+    );
+    if (payload == null || payload.isEmpty) return;
+
+    setState(() => _busy = true);
+    try {
+      final result = await _exit.verify(payload);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: EduColors.surface,
+          icon: Icon(
+            result.repeat ? Icons.check_circle_outline_rounded : Icons.check_circle_rounded,
+            color: EduColors.levelText['stable'],
+            size: 40,
+          ),
+          title: Text(result.repeat ? 'Already signed out' : 'Signed out'),
+          content: Text(result.message, textAlign: TextAlign.center),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      );
+    } catch (caught) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: EduColors.surface,
+          icon: Icon(
+            Icons.error_outline_rounded,
+            color: EduColors.levelText['critical'],
+            size: 40,
+          ),
+          title: const Text('Not recorded'),
+          content: Text(
+            caught is PlanlyException ? caught.message : 'That code was not accepted.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Close'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _scanExit();
+              },
+              child: const Text('Scan again'),
+            ),
+          ],
         ),
       );
     } finally {
@@ -157,6 +228,17 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _scanExit,
+              icon: const Icon(Icons.logout_rounded, size: 18),
+              label: const Text('Scan exit code'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: EduColors.ink,
+                side: const BorderSide(color: EduColors.hairline),
+                minimumSize: const Size.fromHeight(44),
+              ),
             ),
             const SizedBox(height: 18),
 

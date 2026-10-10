@@ -9,3 +9,4 @@ export * from './connectors';
 export * from './studentConnectors';
 export * from './connectorAuth';
 export * from './assignments';
+export * from './exitSessions';

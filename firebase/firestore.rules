@@ -178,6 +178,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── Classroom exit sessions ───────────────────────────────────────────
+    // No client reads this, ever. The session document holds the secret that
+    // mints valid rotating codes — anyone who could read it could generate a
+    // working exit QR from anywhere. Scans go through the API, which checks
+    // the token, the expiry and the class, and stamps the server clock.
+    match /exitSessions/{sessionId} {
+      allow read, write: if false;
+      match /verifications/{usn} {
+        allow read, write: if false;
+      }
+    }
+
     // ── Interventions ─────────────────────────────────────────────────────
     // Faculty-only. The student-facing view of an intervention is its tasks,
     // which are written in language meant for the student; `reason` is written
