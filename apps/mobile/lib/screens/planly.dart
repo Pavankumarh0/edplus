@@ -130,25 +130,27 @@ class _PlanlyScreenState extends State<PlanlyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canGoBack = Navigator.of(context).canPop();
+
+    // As a tab, this screen sits inside a Scaffold with extendBody: true, so
+    // the body runs UNDERNEATH the floating pill nav and the composer ends up
+    // hidden behind it. Pushed as its own route there is no nav to clear.
+    final navClearance = canGoBack ? 0.0 : 78.0;
+
     return Scaffold(
       backgroundColor: EduColors.canvas,
       appBar: AppBar(
         title: const Text('Planly'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(22),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Your study planner. It reads your results, not your mind.',
-                style: EduText.bodySm.copyWith(color: EduColors.inkFaint),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-        ),
+        // Shown when Planly was pushed from somewhere (e.g. Schedule). As a
+        // bottom-nav tab there is nothing to pop, so no dead arrow appears.
+        leading: canGoBack
+            ? IconButton(
+                tooltip: 'Back',
+                icon: const Icon(Icons.arrow_back_rounded, color: EduColors.ink),
+                onPressed: () => Navigator.of(context).pop(),
+              )
+            : null,
+        automaticallyImplyLeading: false,
       ),
       body: Column(
         children: [
@@ -248,7 +250,13 @@ class _PlanlyScreenState extends State<PlanlyScreen> {
               16,
               10,
               16,
-              10 + MediaQuery.of(context).viewPadding.bottom,
+              // With the keyboard up, viewInsets already lifts the composer and
+              // the nav bar is hidden, so the clearance is only needed when the
+              // keyboard is down.
+              10 +
+                  (MediaQuery.of(context).viewInsets.bottom > 0
+                      ? 0
+                      : navClearance + MediaQuery.of(context).viewPadding.bottom),
             ),
             decoration: const BoxDecoration(
               color: EduColors.surface,
