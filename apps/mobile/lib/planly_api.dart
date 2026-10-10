@@ -42,6 +42,10 @@ class PlanlyApi {
     return {
       'content-type': 'application/json',
       'authorization': 'Bearer $token',
+      // ngrok's free tier shows an interstitial HTML page to anything that
+      // looks like a browser. This header opts out, so a tunnelled dev server
+      // returns JSON rather than a warning page the app cannot parse.
+      'ngrok-skip-browser-warning': 'true',
     };
   }
 
