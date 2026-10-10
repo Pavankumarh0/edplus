@@ -15,24 +15,47 @@ class PlanlyApi {
 
   final String baseUrl;
 
-  /// Override at build time:
-  ///   flutter run --dart-define=EDUPLUS_API=https://your-host
+  /// Where the dashboard is. Set at build time:
+  ///   flutter run --dart-define=EDUPLUS_API=http://192.168.1.5:3000
+  ///   flutter run --dart-define=EDUPLUS_API=https://eduplus.vercel.app
   ///
-  /// 10.0.2.2 is how the Android emulator reaches the host machine's
-  /// localhost. A physical phone needs the laptop's LAN IP or a tunnel.
+  /// The default only works on the ANDROID EMULATOR — 10.0.2.2 is its alias
+  /// for the host machine's localhost and means nothing on a real phone. A
+  /// physical device needs the laptop's LAN address (same Wi-Fi) or a deployed
+  /// URL. Cleartext http is permitted only for the dev hosts listed in
+  /// android/app/src/main/res/xml/network_security_config.xml.
   static const _defaultBase = String.fromEnvironment(
     'EDUPLUS_API',
     defaultValue: 'http://10.0.2.2:3000',
   );
 
+  /// True when the app is still pointed at the emulator-only default, which is
+  /// by far the commonest reason Planly cannot connect on a real device.
+  bool get isEmulatorDefault => baseUrl.contains('10.0.2.2');
+
   Future<Map<String, String>> _headers() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw PlanlyException('You are signed out. Sign in again.');
+    if (user == null) {
+      throw PlanlyException('You are signed out. Sign in again.');
+    }
     final token = await user.getIdToken();
     return {
       'content-type': 'application/json',
       'authorization': 'Bearer $token',
     };
+  }
+
+  /// Said when the request never reached the server at all.
+  String get _unreachable {
+    if (isEmulatorDefault) {
+      return 'Could not reach Planly at $baseUrl.\n\n'
+          'That address only works on the Android emulator. On a real phone, '
+          'rebuild pointing at your computer:\n\n'
+          'flutter run --dart-define=EDUPLUS_API=http://<your-ip>:3000';
+    }
+    return 'Could not reach Planly at $baseUrl.\n\n'
+        'Check the dashboard is running and that this device is on the same '
+        'network.';
   }
 
   Future<Map<String, dynamic>> _send(
@@ -55,19 +78,17 @@ class PlanlyApi {
 
       if (response.statusCode >= 400) {
         throw PlanlyException(
-          (decoded['error'] as String?) ?? 'Planly could not answer (${response.statusCode}).',
+          (decoded['error'] as String?) ??
+              'Planly could not answer (${response.statusCode}).',
         );
       }
       return decoded;
     } on PlanlyException {
       rethrow;
     } catch (_) {
-      // The commonest cause by far is the dev server not running, or a phone
-      // that cannot see the laptop — say that rather than "unknown error".
-      throw PlanlyException(
-        'Could not reach Planly at $baseUrl. Check the app is running and the '
-        'device can see it.',
-      );
+      // The commonest causes are the dev server not running, or a phone that
+      // cannot see the laptop — say which, rather than "unknown error".
+      throw PlanlyException(_unreachable);
     }
   }
 
@@ -118,8 +139,8 @@ class PlanlyReply {
   final String reply;
   final List<String> toolsUsed;
 
-  /// True when the turn wrote a plan, tasks or an activity, so the calendar
-  /// is now out of date on screen.
+  /// True when the turn wrote a plan, tasks or an activity, so the calendar is
+  /// now out of date on screen.
   final bool changedPlan;
 }
 
