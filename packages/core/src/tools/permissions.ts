@@ -10,8 +10,10 @@ import type { AgentName, ToolDefinition } from './types';
  * physically cannot read a student's marks or write a report, so no prompt — however
  * it is phrased, by a parent on a live call or anyone else — can make it do so.
  *
- * `schedule_parent_call` appears in no list. It is consequential, so a human
- * creates it; the copilot's job is to draft the wording and hand it over.
+ * `schedule_parent_call` and `schedule_meeting` appear in no list. Both are
+ * consequential — one dials a real phone, the other books real time on a real
+ * calendar — so a human creates them; the copilot's job is to draft the wording
+ * or the slot and hand it over.
  */
 export const AGENT_TOOLS: Record<AgentName, readonly string[]> = {
   /** Writes one honest report per student from their snapshot and history. */
@@ -21,6 +23,7 @@ export const AGENT_TOOLS: Record<AgentName, readonly string[]> = {
     'get_risk_breakdown',
     'save_report',
     'propose_intervention',
+    'propose_meeting',
   ],
 
   /** Answers faculty questions from tools only, and drafts actions for approval. */
@@ -32,6 +35,8 @@ export const AGENT_TOOLS: Record<AgentName, readonly string[]> = {
     'propose_intervention',
     'update_intervention',
     'create_student_tasks',
+    'propose_meeting',
+    'list_meetings',
   ],
 
   /**
@@ -54,6 +59,7 @@ export const AGENT_TOOLS: Record<AgentName, readonly string[]> = {
     'create_plan_tasks',
     'create_activity',
     'list_my_activities',
+    'list_my_meetings',
   ],
 };
 

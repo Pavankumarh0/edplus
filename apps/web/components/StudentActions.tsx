@@ -6,7 +6,16 @@ import { INTERVENTION_TYPES, INTERVENTION_TYPE_LABELS, type InterventionType } f
 import { Button, cx } from './ui';
 import { CallPanel } from './CallPanel';
 
-type Panel = 'none' | 'intervention' | 'call';
+type Panel = 'none' | 'intervention' | 'call' | 'meeting';
+
+/** Tomorrow as YYYY-MM-DD in the browser's own timezone, for the date input. */
+function tomorrow(): string {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
 
 /**
  * The faculty action bar.
@@ -37,6 +46,9 @@ export function StudentActions({
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [simulatorUrl, setSimulatorUrl] = useState<string | null>(null);
+  // The live meeting link, shown the moment it exists so the mentor can
+  // join straight from here rather than hunting for it on a calendar.
+  const [joinUrl, setJoinUrl] = useState<string | null>(null);
   // Set the moment a call is approved, which opens the call panel straight
   // away — no second tab, no second click.
   const [activeCall, setActiveCall] = useState<{
@@ -61,10 +73,18 @@ export function StudentActions({
         simulatorUrl?: string | null;
         callId?: string;
         provider?: 'vobiz' | 'simulated';
+        joinUrl?: string;
+        note?: string | null;
       };
       if (!response.ok) throw new Error(json.error ?? `${label} failed.`);
-      setMessage({ kind: 'ok', text: json.message ?? `${label} done.` });
+      setMessage({
+        kind: 'ok',
+        // A provider fallback is worth saying out loud rather than hiding — a
+        // mentor expecting Google Meet should know they got something else.
+        text: [json.message ?? `${label} done.`, json.note].filter(Boolean).join(' '),
+      });
       setSimulatorUrl(json.simulatorUrl ?? null);
+      setJoinUrl(json.joinUrl ?? null);
       setPanel('none');
 
       if (label === 'Call' && json.callId) {
@@ -115,6 +135,14 @@ export function StudentActions({
 
         <Button
           variant="secondary"
+          disabled={busy !== null}
+          onClick={() => setPanel(panel === 'meeting' ? 'none' : 'meeting')}
+        >
+          Schedule meeting
+        </Button>
+
+        <Button
+          variant="secondary"
           disabled={!hasParentContact || busy !== null}
           onClick={() => setPanel(panel === 'call' ? 'none' : 'call')}
           title={hasParentContact ? undefined : 'No parent number on record'}
@@ -150,7 +178,150 @@ export function StudentActions({
               </a>
             </>
           ) : null}
+          {joinUrl ? (
+            <>
+              {' '}
+              <a
+                href={joinUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium underline underline-offset-2"
+              >
+                Join the meeting
+              </a>
+            </>
+          ) : null}
         </p>
+      ) : null}
+
+      {/* ── Schedule meeting ────────────────────────────────────────────── */}
+      {panel === 'meeting' ? (
+        <form
+          className="bg-surface border-hairline mt-3 w-full rounded-[var(--radius-card)] border p-4 md:w-[420px]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = new FormData(event.currentTarget);
+
+            // The inputs are a date and a wall-clock time, which is how a
+            // mentor thinks about a meeting. Converting here means the stored
+            // instant carries a real offset rather than a floating time that
+            // means something different on the student's phone.
+            const date = String(form.get('date'));
+            const time = String(form.get('time'));
+            const minutes = Number(form.get('minutes'));
+            const start = new Date(`${date}T${time}`);
+            if (Number.isNaN(start.getTime())) {
+              setMessage({ kind: 'error', text: 'That date and time could not be read.' });
+              return;
+            }
+            const end = new Date(start.getTime() + minutes * 60_000);
+
+            void post(
+              '/api/meetings',
+              {
+                usn,
+                title: form.get('title'),
+                reason: form.get('reason'),
+                agenda: form.get('agenda') || undefined,
+                startsAt: start.toISOString(),
+                endsAt: end.toISOString(),
+              },
+              'Meeting',
+            );
+          }}
+        >
+          <label className="text-label text-ink-muted block" htmlFor="meeting-title">
+            Title — the student sees this
+          </label>
+          <input
+            id="meeting-title"
+            name="title"
+            required
+            minLength={3}
+            defaultValue={`Catch-up with ${firstName}`}
+            className="border-hairline text-body mt-1.5 min-h-[40px] w-full rounded-[var(--radius-control)] border bg-white px-2"
+          />
+
+          <label className="text-label text-ink-muted mt-3 block" htmlFor="meeting-reason">
+            Reason — quote the numbers
+          </label>
+          <textarea
+            id="meeting-reason"
+            name="reason"
+            required
+            minLength={10}
+            rows={2}
+            placeholder="Attendance 64.4% against a 90% threshold; assessment average 42%."
+            className="border-hairline text-body mt-1.5 w-full rounded-[var(--radius-control)] border bg-white p-2"
+          />
+
+          <label className="text-label text-ink-muted mt-3 block" htmlFor="meeting-agenda">
+            What to tell the student
+          </label>
+          <input
+            id="meeting-agenda"
+            name="agenda"
+            defaultValue="A short catch-up about how the term is going."
+            className="border-hairline text-body mt-1.5 min-h-[40px] w-full rounded-[var(--radius-control)] border bg-white px-2"
+          />
+
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-label text-ink-muted block" htmlFor="meeting-date">
+                Date
+              </label>
+              <input
+                id="meeting-date"
+                name="date"
+                type="date"
+                required
+                defaultValue={tomorrow()}
+                className="border-hairline text-body mt-1.5 min-h-[40px] w-full rounded-[var(--radius-control)] border bg-white px-2"
+              />
+            </div>
+            <div>
+              <label className="text-label text-ink-muted block" htmlFor="meeting-time">
+                Starts
+              </label>
+              <input
+                id="meeting-time"
+                name="time"
+                type="time"
+                required
+                defaultValue="10:00"
+                className="border-hairline text-body mt-1.5 min-h-[40px] w-full rounded-[var(--radius-control)] border bg-white px-2"
+              />
+            </div>
+            <div>
+              <label className="text-label text-ink-muted block" htmlFor="meeting-minutes">
+                Minutes
+              </label>
+              <select
+                id="meeting-minutes"
+                name="minutes"
+                defaultValue="30"
+                className="border-hairline text-body mt-1.5 min-h-[40px] w-full rounded-[var(--radius-control)] border bg-white px-2"
+              >
+                <option value="15">15</option>
+                <option value="30">30</option>
+                <option value="45">45</option>
+                <option value="60">60</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-2">
+            <Button type="submit" disabled={busy !== null}>
+              {busy === 'Meeting' ? 'Creating the link…' : 'Create meeting link'}
+            </Button>
+            <Button variant="ghost" type="button" onClick={() => setPanel('none')}>
+              Cancel
+            </Button>
+          </div>
+          <p className="text-body-sm text-ink-faint mt-3">
+            The link appears on this page and on the student&rsquo;s calendar straight away.
+          </p>
+        </form>
       ) : null}
 
       {/* ── Create intervention ─────────────────────────────────────────── */}

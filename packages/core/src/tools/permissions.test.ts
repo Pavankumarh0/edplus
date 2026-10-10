@@ -73,9 +73,13 @@ describe('the tool registry', () => {
     }
   });
 
-  it('treats placing a parent call as the one consequential action', () => {
-    const consequential = TOOL_NAMES.filter((n) => TOOLS[n]!.consequential);
-    expect(consequential).toEqual(['schedule_parent_call']);
+  it('marks exactly the actions that reach outside the system as consequential', () => {
+    // Dialling a real phone, booking real time on a real calendar, and taking
+    // that booking back again. Everything else stays inside Firestore, so an
+    // agent doing it wrongly is recoverable. Adding a name here means a human
+    // must press the button; adding one by accident is what this guards.
+    const consequential = TOOL_NAMES.filter((n) => TOOLS[n]!.consequential).sort();
+    expect(consequential).toEqual(['cancel_meeting', 'schedule_meeting', 'schedule_parent_call']);
   });
 });
 
@@ -174,14 +178,17 @@ describe('human and system actors', () => {
 
 describe('input schemas', () => {
   it('reject an empty payload on every tool that needs a subject', () => {
-    // list_at_risk_students is the deliberate exception: "who needs attention
-    // today?" takes no arguments and is its primary use.
+    // list_at_risk_students and list_meetings are the deliberate exceptions:
+    // "who needs attention today?" and "what is on my calendar?" take no
+    // arguments and are each tool's primary use.
     // The student-scoped tools take no arguments by design: the student comes
     // from the actor, not from the call.
     const takesNoArgs = new Set([
       'list_at_risk_students',
+      'list_meetings',
       'get_my_progress',
       'list_my_activities',
+      'list_my_meetings',
     ]);
     for (const name of TOOL_NAMES) {
       if (takesNoArgs.has(name)) continue;
@@ -249,6 +256,7 @@ describe('Planly is confined to one student', () => {
     'create_plan_tasks',
     'create_activity',
     'list_my_activities',
+    'list_my_meetings',
   ];
 
   it('never accepts a usn argument', () => {
@@ -277,6 +285,10 @@ describe('Planly is confined to one student', () => {
       'update_intervention',
       'create_student_tasks',
       'schedule_parent_call',
+      'propose_meeting',
+      'list_meetings',
+      'schedule_meeting',
+      'cancel_meeting',
       'get_call_context',
       'log_call_outcome',
     ]) {

@@ -12,6 +12,7 @@ import {
   type RiskSnapshot,
   type Adherence,
   type Activity,
+  type Meeting,
   type Student,
   type StudyPlan,
 } from '@eduplus/core';
@@ -36,6 +37,8 @@ import {
   listTasks,
   saveSnapshots,
   usnsWithOpenInterventions,
+  listMeetings,
+  listUpcomingMeetings,
 } from '@eduplus/core/repositories';
 
 /** Everything the Overview screen needs, in one pass. */
@@ -49,6 +52,8 @@ export interface OverviewData {
   todaysCalls: Awaited<ReturnType<typeof listCalls>>;
   totalStudents: number;
   scoredStudents: number;
+  /** The mentor's own calendar: what they are seeing, and when. */
+  upcomingMeetings: Meeting[];
 }
 
 async function buildRows(): Promise<{
@@ -82,15 +87,17 @@ async function buildRows(): Promise<{
 
 export async function getOverview(): Promise<OverviewData> {
   const db = getDb();
-  const [rules, { rows, students }, openInterventions, recentUploads, calls] = await Promise.all([
-    getRiskRules(db),
-    buildRows(),
-    listInterventions(db).then((all) =>
-      all.filter((i) => ['proposed', 'approved', 'in_progress'].includes(i.status)),
-    ),
-    listRecentUploads(db, 5),
-    listCalls(db),
-  ]);
+  const [rules, { rows, students }, openInterventions, recentUploads, calls, upcomingMeetings] =
+    await Promise.all([
+      getRiskRules(db),
+      buildRows(),
+      listInterventions(db).then((all) =>
+        all.filter((i) => ['proposed', 'approved', 'in_progress'].includes(i.status)),
+      ),
+      listRecentUploads(db, 5),
+      listCalls(db),
+      listUpcomingMeetings(db, { limit: 6 }),
+    ]);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -104,6 +111,7 @@ export async function getOverview(): Promise<OverviewData> {
     todaysCalls: calls.filter((c) => c.createdAt.slice(0, 10) === today),
     totalStudents: students.length,
     scoredStudents: rows.length,
+    upcomingMeetings,
   };
 }
 
@@ -144,6 +152,8 @@ export interface StudentDetailData {
    */
   adherence: Adherence;
   activities: Activity[];
+  /** Meetings with this student, soonest first. Includes cancelled ones. */
+  meetings: Meeting[];
 }
 
 export async function getStudentDetail(usn: string): Promise<StudentDetailData | null> {
@@ -164,10 +174,11 @@ export async function getStudentDetail(usn: string): Promise<StudentDetailData |
       getParentContact(db, usn),
     ]);
 
-  const [account, plan, activities] = await Promise.all([
+  const [account, plan, activities, meetings] = await Promise.all([
     getStudentAccount(usn, student.authUid),
     getActivePlan(db, usn),
     listActivities(db, usn),
+    listMeetings(db, usn),
   ]);
 
   return {
@@ -189,6 +200,7 @@ export async function getStudentDetail(usn: string): Promise<StudentDetailData |
     plan,
     adherence: computeAdherence(tasks, new Date().toISOString().slice(0, 10)),
     activities,
+    meetings,
   };
 }
 

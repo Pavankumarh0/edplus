@@ -117,6 +117,22 @@ service cloud.firestore {
                       && request.resource.data.score <= request.resource.data.outOf;
       }
 
+      // ── Meetings ──────────────────────────────────────────────────────
+      // Readable by faculty and by the student they are with — the student is
+      // an invitee, so withholding the join link would make the meeting
+      // unattendable. Written only by the server, because creating one books
+      // real time on a real calendar.
+      //
+      // Note the path: meetings hang off the student, so a student asking for
+      // "all meetings" can only ever name their own. The collection-group
+      // query the mentor's agenda uses is denied to clients by the default
+      // rule at the bottom of this file, which does not match subcollection
+      // groups — only the Admin SDK runs it.
+      match /meetings/{meetingId} {
+        allow get, list: if canReadStudent(usn);
+        allow write: if false;
+      }
+
       // ── Recovery tasks ────────────────────────────────────────────────
       // The one place a student may write: ticking their own task off.
       // They may change `done` and `doneAt` and nothing else — not the title,

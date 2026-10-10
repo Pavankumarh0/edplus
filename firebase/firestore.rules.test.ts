@@ -86,6 +86,15 @@ beforeEach(async () => {
         usn, title: 'Attend all 6 DBMS classes this week', done: false,
         doneAt: null, interventionId: 'iv1',
       });
+      await setDoc(doc(db, 'students', usn, 'meetings', 'mt1'), {
+        meetingId: 'mt1', usn, title: 'Attendance check-in',
+        reason: 'Attendance 37.8% against a 90% threshold.',
+        startsAt: '2026-03-10T04:30:00.000Z', endsAt: '2026-03-10T05:00:00.000Z',
+        status: 'scheduled', provider: 'google_meet',
+        joinUrl: 'https://meet.google.com/abc-defg-hij', calendarEventId: 'ev1',
+        interventionId: null, proposedBy: 'copilot', scheduledBy: 'faculty-uid',
+        createdAt: '2026-03-03T06:00:00.000Z', failureReason: null,
+      });
       await setDoc(doc(db, 'students', usn, 'plans', 'p1'), {
         planId: 'p1', usn, snapshotId: 's1', goal: 'Get attendance above 75%',
         rationale: 'Attendance 37.8% against a 90% threshold.',
@@ -258,6 +267,40 @@ describe('a student ticking off their own task', () => {
     await assertFails(
       updateDoc(doc(student(), 'students', OWN_USN, 'tasks', 't1'), { done: 'yes' }),
     );
+  });
+
+  it('can read its own meetings, including the join link', async () => {
+    // The student is an invitee. A meeting they cannot see the link for is a
+    // meeting they cannot attend, so this read is the feature working.
+    const db = student();
+    await assertSucceeds(getDoc(doc(db, 'students', OWN_USN, 'meetings', 'mt1')));
+    await assertSucceeds(getDocs(collection(db, 'students', OWN_USN, 'meetings')));
+  });
+
+  it('cannot read another student’s meetings', async () => {
+    const db = student();
+    await assertFails(getDoc(doc(db, 'students', OTHER_USN, 'meetings', 'mt1')));
+    await assertFails(getDocs(collection(db, 'students', OTHER_USN, 'meetings')));
+  });
+
+  it('cannot book, move or cancel a meeting', async () => {
+    // Booking is consequential and server-only. A student who could write here
+    // could put a meeting on a mentor's calendar.
+    const db = student();
+    await assertFails(
+      setDoc(doc(db, 'students', OWN_USN, 'meetings', 'invented'), {
+        meetingId: 'invented', usn: OWN_USN, title: 'Marks review', status: 'scheduled',
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(db, 'students', OWN_USN, 'meetings', 'mt1'), { status: 'cancelled' }),
+    );
+    await assertFails(
+      updateDoc(doc(db, 'students', OWN_USN, 'meetings', 'mt1'), {
+        startsAt: '2026-03-11T04:30:00.000Z',
+      }),
+    );
+    await assertFails(deleteDoc(doc(db, 'students', OWN_USN, 'meetings', 'mt1')));
   });
 
   it('cannot create or delete tasks', async () => {

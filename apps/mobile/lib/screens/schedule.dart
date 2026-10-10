@@ -59,6 +59,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           const SizedBox(height: 10),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: widget.data.meetings(),
+              builder: (context, meetingSnap) {
+                final meetingsToday = (meetingSnap.data ?? const [])
+                    .where((m) => ((m['startsAt'] ?? '') as String).startsWith(_selectedKey))
+                    .toList();
+                return StreamBuilder<List<Map<String, dynamic>>>(
               stream: widget.data.tasks(),
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
@@ -79,7 +85,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
                   children: [
-                    if (forDay.isEmpty)
+                    // A meeting is at a fixed time; the tasks are not. It goes
+                    // first so a student planning their day sees the thing
+                    // they cannot move.
+                    for (final meeting in meetingsToday)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: MeetingTile(meeting: meeting),
+                      ),
+                    if (forDay.isEmpty && meetingsToday.isEmpty)
                       EduEmpty(
                         title: isToday ? 'Nothing planned for today' : 'Nothing planned',
                         body: all.isEmpty
@@ -119,6 +133,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       ),
                     ),
                   ],
+                );
+              },
                 );
               },
             ),

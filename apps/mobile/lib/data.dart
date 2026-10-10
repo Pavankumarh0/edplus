@@ -66,6 +66,25 @@ class StudentData {
       .snapshots()
       .map((query) => query.docs.isEmpty ? null : query.docs.first.data());
 
+  /// Meetings with the mentor, soonest first.
+  ///
+  /// Read straight from Firestore under the security rules, like everything
+  /// else here — the rules allow a student their own meetings and nobody
+  /// else's, so there is no server call and no way to ask for another
+  /// student's calendar. Cancelled meetings stay in the list so a student who
+  /// was expecting one can see it was called off rather than wonder.
+  Stream<List<Map<String, dynamic>>> meetings() =>
+      _student.collection('meetings').snapshots().map((query) {
+        final list = query.docs
+            .map((d) => {...d.data(), 'meetingId': d.id})
+            .where((m) => m['status'] != 'proposed')
+            .toList();
+        list.sort(
+          (a, b) => ((a['startsAt'] ?? '') as String).compareTo((b['startsAt'] ?? '') as String),
+        );
+        return list;
+      });
+
   Stream<List<Map<String, dynamic>>> tasks() =>
       _student.collection('tasks').snapshots().map((query) {
         final list = query.docs.map((d) => {...d.data(), 'taskId': d.id}).toList();

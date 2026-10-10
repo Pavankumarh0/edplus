@@ -38,6 +38,7 @@ import { prioritise, type PrioritisableStudent } from '../risk/prioritise';
 import { projectRisk } from '../risk/project';
 import type { ToolDefinition } from './types';
 import { STUDENT_TOOLS } from './student-tools';
+import { MEETING_TOOLS } from './meeting-tools';
 
 const COLLEGE_NAME = process.env.COLLEGE_NAME ?? 'the college';
 
@@ -567,6 +568,7 @@ export const TOOLS: Record<string, ToolDefinition<any, any>> = {
   get_call_context: getCallContextTool,
   log_call_outcome: logCallOutcomeTool,
   schedule_parent_call: scheduleParentCallTool,
+  ...MEETING_TOOLS,
 };
 
 export const TOOL_NAMES = Object.keys(TOOLS);

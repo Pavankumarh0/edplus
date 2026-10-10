@@ -22,6 +22,10 @@ dependencies:
   # HTTP with its Firebase ID token.
   http: ^1.2.2
 
+  # Opens a meeting link in the Meet app when it is installed, and in the
+  # browser when it is not.
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -8,5 +8,6 @@ export * from './plan';
 export * from './task';
 export * from './report';
 export * from './call';
+export * from './meeting';
 export * from './upload';
 export * from './audit';

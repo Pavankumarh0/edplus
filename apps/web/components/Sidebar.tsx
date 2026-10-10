@@ -23,7 +23,7 @@ const stroke = {
 
 const NAV: NavItem[] = [
   {
-    href: '/',
+    href: '/overview',
     label: 'Overview',
     icon: (
       <svg viewBox="0 0 24 24" width="20" height="20" {...stroke}>
@@ -94,8 +94,7 @@ const NAV: NavItem[] = [
 export function Sidebar({ userLabel }: { userLabel: string }) {
   const pathname = usePathname();
 
-  const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href);
+  const isActive = (href: string) => pathname.startsWith(href);
 
   return (
     <nav
@@ -108,7 +107,7 @@ export function Sidebar({ userLabel }: { userLabel: string }) {
       )}
     >
       <Link
-        href="/"
+        href="/overview"
         className="hidden md:mb-4 md:flex md:size-10 md:items-center md:justify-center"
         aria-label="EduPlus AI — Overview"
       >

@@ -5,8 +5,10 @@ import {
   INDICATOR_LABELS,
   INTERVENTION_TYPE_LABELS,
   LEVEL_PALETTE,
+  MEETING_PROVIDER_LABELS,
   PARENT_RESPONSE_LABELS,
   buildBeforeAfter,
+  isUpcoming,
 } from '@eduplus/core';
 import { getStudentDetail } from '@/lib/dashboard';
 import {
@@ -17,12 +19,31 @@ import {
   LevelPill,
   Metric,
   Usn,
+  cx,
 } from '@/components/ui';
 import { RiskHistoryChart } from '@/components/RiskHistoryChart';
 import { WhatIfPanel } from '@/components/WhatIfPanel';
 import { StudentActions } from '@/components/StudentActions';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * "Tue 14 Oct, 10:00–10:30" — one string, because a meeting is one fact and
+ * splitting the date from the time makes a mentor read two things to answer
+ * "when".
+ */
+function formatMeetingWhen(startsAt: string, endsAt: string): string {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  const day = start.toLocaleDateString('en-IN', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  const time = (d: Date) =>
+    d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${day}, ${time(start)}–${time(end)}`;
+}
 
 export default async function StudentPage({ params }: { params: Promise<{ usn: string }> }) {
   const { usn } = await params;
@@ -31,9 +52,10 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
 
   const {
     student, snapshot, rules, history, report, interventions, calls, tasks, parent, account,
-    plan, adherence, activities,
+    plan, adherence, activities, meetings,
   } = data;
 
+  const upcomingMeetings = meetings.filter((m) => isUpcoming(m));
   const settled = interventions.filter((i) => i.outcomeSnapshotId && i.outcome);
   const latestSettled = settled[0];
   const baseline = latestSettled
@@ -339,6 +361,63 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
                   </div>
                 ) : null}
               </>
+            )}
+          </Card>
+
+          {/* ── Meetings ───────────────────────────────────────────────── */}
+          <Card className="lg:col-span-7">
+            <CardTitle hint={upcomingMeetings.length > 0 ? 'Shared with the student' : undefined}>
+              Meetings
+            </CardTitle>
+            {meetings.length === 0 ? (
+              <p className="text-body-sm text-ink-muted">
+                None yet. Use &ldquo;Schedule meeting&rdquo; above to create a link both of you
+                can join.
+              </p>
+            ) : (
+              <ul className="divide-hairline divide-y">
+                {meetings.map((meeting) => {
+                  const cancelled = meeting.status === 'cancelled';
+                  const past = new Date(meeting.endsAt) < new Date();
+                  return (
+                    <li key={meeting.meetingId} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3 first:pt-0 last:pb-0">
+                      <span
+                        className={cx(
+                          'text-body font-medium',
+                          cancelled && 'text-ink-faint line-through',
+                        )}
+                      >
+                        {meeting.title}
+                      </span>
+                      <span className="text-body-sm text-ink-muted tnum">
+                        {formatMeetingWhen(meeting.startsAt, meeting.endsAt)}
+                      </span>
+                      {meeting.status === 'proposed' ? (
+                        <Badge>Awaiting your confirmation</Badge>
+                      ) : null}
+                      {cancelled ? <Badge>Cancelled</Badge> : null}
+                      {meeting.provider && !cancelled ? (
+                        <span className="text-body-sm text-ink-faint">
+                          {MEETING_PROVIDER_LABELS[meeting.provider]}
+                        </span>
+                      ) : null}
+                      {meeting.joinUrl && !cancelled ? (
+                        <a
+                          href={meeting.joinUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={cx(
+                            'text-body-sm ml-auto rounded-[var(--radius-pill)] px-3 py-1 font-semibold',
+                            past ? 'bg-surface-sunk text-ink-muted' : 'bg-lime text-ink',
+                          )}
+                        >
+                          {past ? 'Link' : 'Join'}
+                        </a>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </Card>
 

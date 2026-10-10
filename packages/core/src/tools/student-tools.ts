@@ -22,6 +22,7 @@ import {
   saveStudyPlan,
 } from '../repositories/plans';
 import { getRiskRules } from '../repositories/config';
+import { listMeetings } from '../repositories/meetings';
 import type { ToolContext, ToolDefinition } from './types';
 
 /**
@@ -360,10 +361,49 @@ const listMyActivities: ToolDefinition<Record<string, never>, unknown> = {
   },
 };
 
+/**
+ * The student's side of the meeting feature.
+ *
+ * Takes no `usn`, like everything else here, so Planly can tell a student when
+ * their mentor is seeing them without being able to ask about anyone else's
+ * calendar. Returns the join link, because the student is an invitee: a
+ * meeting they cannot join is not a meeting.
+ */
+const listMyMeetings: ToolDefinition<Record<string, never>, unknown> = {
+  name: 'list_my_meetings',
+  title: 'List my meetings',
+  description:
+    'Your meetings with your mentor, soonest first, with the join link for each. Check ' +
+    'this before planning a day so you do not schedule study over a meeting, and mention ' +
+    'an upcoming one if it is relevant to what the student is asking about.',
+  inputSchema: z.object({}),
+  consequential: false,
+  readOnly: true,
+  async handler(_input, ctx) {
+    const meetings = await listMeetings(ctx.db, scopedUsn(ctx));
+    const now = ctx.now?.() ?? new Date();
+
+    return {
+      meetings: meetings
+        .filter((m) => m.status !== 'proposed')
+        .map((m) => ({
+          title: m.title,
+          agenda: m.agenda ?? null,
+          startsAt: m.startsAt,
+          endsAt: m.endsAt,
+          status: m.status,
+          joinUrl: m.joinUrl,
+          isUpcoming: m.status === 'scheduled' && new Date(m.endsAt) > now,
+        })),
+    };
+  },
+};
+
 export const STUDENT_TOOLS = {
   get_my_progress: getMyProgress,
   save_study_plan: saveStudyPlanTool,
   create_plan_tasks: createPlanTasksTool,
   create_activity: createActivityTool,
   list_my_activities: listMyActivities,
+  list_my_meetings: listMyMeetings,
 } satisfies Record<string, ToolDefinition<any, any>>;

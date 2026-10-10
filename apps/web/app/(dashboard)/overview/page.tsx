@@ -21,6 +21,20 @@ import { PriorityQueue } from '@/components/PriorityQueue';
 
 export const dynamic = 'force-dynamic';
 
+/** "Tue 14 Oct, 10:00" — enough for a mentor to know whether it is today. */
+function formatWhen(startsAt: string): string {
+  const start = new Date(startsAt);
+  return `${start.toLocaleDateString('en-IN', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })}, ${start.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })}`;
+}
+
 export default async function OverviewPage() {
   const data = await getOverview();
 
@@ -124,6 +138,47 @@ export default async function OverviewPage() {
               <p className="text-body-sm text-ink-faint mt-5">
                 Nothing open. Approve an intervention from a student&rsquo;s page.
               </p>
+            )}
+          </Card>
+
+          {/* ── The mentor's calendar ──────────────────────────────────── */}
+          <Card className="lg:col-span-4">
+            <CardTitle hint={data.upcomingMeetings.length > 0 ? 'Next up' : undefined}>
+              Your meetings
+            </CardTitle>
+            {data.upcomingMeetings.length === 0 ? (
+              <p className="text-body-sm text-ink-faint">
+                Nothing scheduled. Book one from a student&rsquo;s page.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {data.upcomingMeetings.map((meeting) => (
+                  <li key={meeting.meetingId} className="text-body-sm">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <Link
+                        href={`/students/${meeting.usn}`}
+                        className="text-ink truncate font-medium underline-offset-2 hover:underline"
+                      >
+                        {meeting.title}
+                      </Link>
+                      {meeting.joinUrl ? (
+                        <a
+                          href={meeting.joinUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-lime text-ink shrink-0 rounded-[var(--radius-pill)] px-2.5 py-0.5 text-[12px] font-semibold"
+                        >
+                          Join
+                        </a>
+                      ) : null}
+                    </div>
+                    <div className="text-ink-faint mt-0.5 flex items-center gap-2 tabular-nums">
+                      <span>{formatWhen(meeting.startsAt)}</span>
+                      <Usn>{meeting.usn}</Usn>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </Card>
 

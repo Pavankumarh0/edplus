@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       if (kind === 'password') await signInWithPassword(email, password);
       else await signInWithGoogle();
-      router.replace('/');
+      router.replace('/overview');
       router.refresh();
     } catch (caught) {
       setError(describeAuthError(caught));
