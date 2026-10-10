@@ -146,7 +146,11 @@ export function computeSnapshot(input: ComputeSnapshotInput): RiskSnapshot {
   for (const key of INDICATOR_KEYS) {
     const result = indicators[key]!;
     const rule = rules.indicators[key]!;
-    result.weight = result.available && availableWeight > 0 ? round1(rule.weight / availableWeight) : 0;
+    // round2, not round1: these are fractions of 1, so a single decimal turns
+    // a 0.35 weight into 0.4 — which is what the UI shows and what the model
+    // is told, and it is simply the wrong number.
+    result.weight =
+      result.available && availableWeight > 0 ? round2(rule.weight / availableWeight) : 0;
   }
 
   const score = availableWeight > 0 ? round1(weightedRisk / availableWeight) : 0;

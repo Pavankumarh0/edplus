@@ -234,7 +234,7 @@ describe('sample data — dirty rows demonstrate row-level error reporting', () 
   it('reports the blank mark, the over-max mark, the missing USN and the bad number', () => {
     const messages = result.errors.map((e) => e.message).join(' | ');
     expect(messages).toMatch(/not a number/);
-    expect(messages).toMatch(/cannot exceed/);
+    expect(messages).toMatch(/larger than the maximum/);
     expect(messages).toMatch(/invalid USN/);
     expect(messages).toMatch(/not a number we can dial/);
   });

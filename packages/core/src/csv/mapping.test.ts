@@ -320,7 +320,7 @@ describe('buildImport', () => {
         '1OX21IS001,Aarav,DBMS,60,50,2026-03-01\n',
     );
     expect(result.rowsRejected).toBe(1);
-    expect(result.errors.some((e) => /cannot exceed/.test(e.message))).toBe(true);
+    expect(result.errors.some((e) => /larger than the maximum/.test(e.message))).toBe(true);
   });
 
   it('rejects a row with a missing USN', () => {

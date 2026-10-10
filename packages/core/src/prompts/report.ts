@@ -31,6 +31,8 @@ A risk snapshot computed by a deterministic engine. It contains, for each indica
 
 8. **No exclamation marks. No emoji. No apologies.** Plain, calm sentences.
 
+9. **Write levels and indicator names the way a person says them.** The snapshot stores them as \`at_risk\`, \`risk_update\`, \`parent_call\`. Write "At Risk", "a risk update", "a parent call". Never print a raw underscored value.
+
 ## Shape
 Return JSON matching the required schema.
 - summary: 2-3 sentences, citing at least two real figures.

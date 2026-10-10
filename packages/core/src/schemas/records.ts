@@ -40,7 +40,8 @@ export const AcademicRecordSchema = z
     path: ['maxValue'],
   })
   .refine((r) => r.value <= r.maxValue, {
-    message: 'value cannot exceed maxValue',
+    message:
+      'The value is larger than the maximum it is out of, so one of the two is wrong — check the row before importing it.',
     path: ['value'],
   });
 

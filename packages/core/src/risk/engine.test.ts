@@ -502,6 +502,30 @@ describe('normalised weights', () => {
     expect(total).toBeCloseTo(1, 2);
     expect(snap.indicators.submission.weight).toBe(0);
   });
+
+  it('reports the configured weight unchanged when nothing is missing', () => {
+    // Regression: these were rounded to one decimal, which turned a configured
+    // 0.35 into 0.4 — the number the dashboard shows and the number Planly is
+    // told when it explains which indicator matters most.
+    const previous = computeSnapshot({
+      usn: USN,
+      records: fullRecords({ attendance: [30, 45], assessment: [20, 50], submission: [3, 6] }),
+      rules: DEFAULT_RISK_RULES,
+      now: NOW,
+    });
+    const snap = computeSnapshot({
+      usn: USN,
+      records: fullRecords({ attendance: [32, 45], assessment: [24, 50], submission: [4, 6] }),
+      rules: DEFAULT_RISK_RULES,
+      previousSnapshot: previous,
+      now: LATER,
+    });
+
+    for (const key of ['attendance', 'assessment', 'submission', 'trend'] as const) {
+      expect(snap.indicators[key]!.available).toBe(true);
+      expect(snap.indicators[key]!.weight).toBe(DEFAULT_RISK_RULES.indicators[key]!.weight);
+    }
+  });
 });
 
 describe('snapshot ids', () => {
