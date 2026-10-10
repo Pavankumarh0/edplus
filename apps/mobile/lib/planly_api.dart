@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
+import 'app_config.dart';
+
 /// Talks to Planly on the server.
 ///
 /// Firestore reads happen straight from the device under the security rules,
@@ -11,23 +13,9 @@ import 'package:http/http.dart' as http;
 /// about another.
 class PlanlyApi {
   PlanlyApi({String? baseUrl})
-      : baseUrl = (baseUrl ?? _defaultBase).replaceAll(RegExp(r'/+$'), '');
+      : baseUrl = (baseUrl ?? AppConfig.apiBase).replaceAll(RegExp(r'/+$'), '');
 
   final String baseUrl;
-
-  /// Where the dashboard is. Set at build time:
-  ///   flutter run --dart-define=EDUPLUS_API=http://192.168.1.5:3000
-  ///   flutter run --dart-define=EDUPLUS_API=https://eduplus.vercel.app
-  ///
-  /// The default only works on the ANDROID EMULATOR — 10.0.2.2 is its alias
-  /// for the host machine's localhost and means nothing on a real phone. A
-  /// physical device needs the laptop's LAN address (same Wi-Fi) or a deployed
-  /// URL. Cleartext http is permitted only for the dev hosts listed in
-  /// android/app/src/main/res/xml/network_security_config.xml.
-  static const _defaultBase = String.fromEnvironment(
-    'EDUPLUS_API',
-    defaultValue: 'http://10.0.2.2:3000',
-  );
 
   /// True when the app is still pointed at the emulator-only default, which is
   /// by far the commonest reason Planly cannot connect on a real device.
@@ -52,10 +40,12 @@ class PlanlyApi {
   /// Said when the request never reached the server at all.
   String get _unreachable {
     if (isEmulatorDefault) {
-      return 'Could not reach Planly at $baseUrl.\n\n'
-          'That address only works on the Android emulator. On a real phone, '
-          'rebuild pointing at your computer:\n\n'
-          'flutter run --dart-define=EDUPLUS_API=http://<your-ip>:3000';
+      return 'Could not reach Planly.\n\n'
+          'This app has no server address configured, so it fell back to one '
+          'that only works on the Android emulator.\n\n'
+          'Ask your college to set config/app.apiBaseUrl, then reopen the app. '
+          'A developer can instead rebuild with:\n'
+          'flutter run --dart-define=EDUPLUS_API=https://<your-url>';
     }
     return 'Could not reach Planly at $baseUrl.\n\n'
         'Check the dashboard is running and that this device is on the same '

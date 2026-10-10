@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'data.dart';
 import 'firebase_options.dart';
+import 'app_config.dart';
 import 'screens/home.dart';
 import 'screens/login.dart';
 import 'screens/planly.dart';
@@ -20,6 +21,11 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // Where the server is, read from Firestore so a changed tunnel URL needs a
+  // reopen rather than a rebuild. Awaited but never fatal — a failure here
+  // only affects Planly, and the rest of the app reads Firestore directly.
+  await AppConfig.refresh();
+
   runApp(const EduPlusApp());
 }
 
@@ -60,6 +66,10 @@ class AuthGate extends StatelessWidget {
           future: Future.wait([
             StudentData.currentUsn(refresh: true),
             StudentData.currentRole(),
+            // Re-read here, not only at startup: the security rules allow
+            // config/* to a signed-in user, and at startup nobody is signed in
+            // yet, so the first attempt is always denied.
+            AppConfig.refresh().then((_) => null),
           ]),
           builder: (context, claims) {
             if (claims.connectionState == ConnectionState.waiting) {

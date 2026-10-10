@@ -61,8 +61,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: widget.data.meetings(),
               builder: (context, meetingSnap) {
+                // Compared in LOCAL time, not by string prefix. `startsAt` is
+                // stored in UTC, so a 03:00 IST meeting is 21:30Z the previous
+                // day — a prefix match would file it under the wrong date and
+                // hide it from the day it actually happens on.
                 final meetingsToday = (meetingSnap.data ?? const [])
-                    .where((m) => ((m['startsAt'] ?? '') as String).startsWith(_selectedKey))
+                    .where((m) {
+                      final raw = m['startsAt'];
+                      if (raw is! String) return false;
+                      final at = DateTime.tryParse(raw)?.toLocal();
+                      if (at == null) return false;
+                      return at.year == _selected.year &&
+                          at.month == _selected.month &&
+                          at.day == _selected.day;
+                    })
                     .toList();
                 return StreamBuilder<List<Map<String, dynamic>>>(
               stream: widget.data.tasks(),

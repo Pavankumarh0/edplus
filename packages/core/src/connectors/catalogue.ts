@@ -7,7 +7,7 @@ import {
 import type { Actor } from '../schemas/audit';
 import { AGENT_TOOLS, toolsForActor } from '../tools/permissions';
 import { TOOLS } from '../tools/definitions';
-import { activeProvider, googleConfig } from '../meetings/provider';
+import { googleConfig } from '../meetings/provider';
 
 /**
  * Builds the Connectors page from what is actually wired up.
@@ -82,14 +82,15 @@ function nativeConnector(actor: Actor, settings: ConnectorSettings): ConnectorCa
 }
 
 /**
- * Google Calendar.
+ * The meeting provider.
  *
- * Status is not "did someone save a URL" — it reports whether credentials are
- * actually configured, because the meetings feature silently falls back to a
- * Jitsi room when they are not, and a page claiming "Connected" while the
- * fallback runs would be lying about which service holds the data.
+ * Jitsi by default and by choice: it needs no account on either side, so a
+ * mentor and a student can join from their two dashboards with nothing to set
+ * up. Google Meet is used instead only when GOOGLE_* credentials are present,
+ * and the card says which is actually in use — a page claiming one while the
+ * other runs would misstate where the meeting lives.
  */
-function googleConnector(actor: Actor, settings: ConnectorSettings): ConnectorCard {
+function meetingsConnector(actor: Actor, settings: ConnectorSettings): ConnectorCard {
   const configured = googleConfig() !== null;
   const meetingTools = ['schedule_meeting', 'cancel_meeting', 'list_meetings', 'propose_meeting']
     .filter((name) => toolsForActor(actor).includes(name))
@@ -97,33 +98,36 @@ function googleConnector(actor: Actor, settings: ConnectorSettings): ConnectorCa
     .filter((t): t is ConnectorTool => t !== null);
 
   return {
-    id: 'google-calendar',
+    id: 'meetings',
     kind: 'google',
-    name: 'Google Calendar',
-    description:
-      'Puts a mentor–student meeting on a real calendar with a Google Meet link, ' +
-      'and shows it on both dashboards.',
+    name: configured ? 'Google Meet' : 'Jitsi Meet',
+    description: configured
+      ? 'Puts a mentor–student meeting on a real Google Calendar with a Meet link, ' +
+        'and shows it on both dashboards.'
+      : 'Creates a private video room for a mentor–student meeting and puts the link ' +
+        'on both dashboards. No account needed on either side.',
     enables: [
       'Create a meeting with a live video link',
-      'Invite the student and the mentor',
-      'Remove the event again when a meeting is cancelled',
+      'Show it on the mentor’s agenda and the student’s calendar',
+      'Take the link away again when a meeting is cancelled',
     ],
-    authMethod: 'Google OAuth — calendar.events scope',
-    status: configured ? 'connected' : 'needs_setup',
+    authMethod: configured ? 'Google OAuth — calendar.events scope' : 'None required',
+    // Jitsi needs nothing configured, so it is genuinely connected rather than
+    // awaiting setup. Reporting it as "needs setup" would be telling a mentor
+    // to fix something that is working.
+    status: 'connected',
     statusDetail: configured
       ? null
-      : `Not configured, so meetings currently use ${
-          activeProvider() === 'jitsi' ? 'a Jitsi room' : activeProvider()
-        } instead. ` +
-        'Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_REFRESH_TOKEN to switch ' +
-        'to Google Meet — the same button then creates real calendar events.',
+      : 'Rooms are created on meet.jit.si, which needs no account. Set GOOGLE_CLIENT_ID, ' +
+        'GOOGLE_CLIENT_SECRET and GOOGLE_REFRESH_TOKEN to use Google Meet instead — the ' +
+        'same button then creates real calendar events.',
     tools: meetingTools,
   };
 }
 
 /** Every connector this actor can see, with their tools. */
 export function buildCatalogue(actor: Actor, settings: ConnectorSettings): ConnectorCard[] {
-  const cards = [nativeConnector(actor, settings), googleConnector(actor, settings)];
+  const cards = [nativeConnector(actor, settings), meetingsConnector(actor, settings)];
   // A student has no meeting tools of their own — their mentor books meetings —
   // so an empty card would just be noise on their screen.
   return cards.filter((card) => card.kind === 'native' || card.tools.length > 0);

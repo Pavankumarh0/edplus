@@ -102,23 +102,28 @@ describe('what each actor sees', () => {
   it('drops the Google card for an actor with no meeting tools', () => {
     // An empty connector card is noise on a student's screen.
     const cards = buildCatalogue(planly, DEFAULT_CONNECTOR_SETTINGS);
-    expect(cards.some((c) => c.id === 'google-calendar')).toBe(false);
+    expect(cards.some((c) => c.id === 'meetings')).toBe(false);
   });
 });
 
 describe('connector status', () => {
-  it('does not claim Google is connected without credentials', () => {
-    // The meetings feature silently falls back to a Jitsi room when Google is
-    // unconfigured. A page reading "Connected" while the fallback runs would
-    // be telling a mentor their data is somewhere it is not.
+  it('names the meeting provider actually in use', () => {
+    // Jitsi needs nothing configured, so meetings genuinely work out of the
+    // box. The card must say which service is creating the rooms — claiming
+    // one while the other runs would misstate where the meeting lives.
     const cards = buildCatalogue(faculty, DEFAULT_CONNECTOR_SETTINGS);
-    const google = cards.find((c) => c.id === 'google-calendar')!;
+    const meetings = cards.find((c) => c.id === 'meetings')!;
+
+    expect(meetings.status).toBe('connected');
 
     if (process.env.GOOGLE_REFRESH_TOKEN) {
-      expect(google.status).toBe('connected');
+      expect(meetings.name).toBe('Google Meet');
+      expect(meetings.statusDetail).toBeNull();
     } else {
-      expect(google.status).toBe('needs_setup');
-      expect(google.statusDetail).toMatch(/GOOGLE_CLIENT_ID/);
+      expect(meetings.name).toBe('Jitsi Meet');
+      expect(meetings.authMethod).toBe('None required');
+      // Still says how to switch, without implying anything is broken.
+      expect(meetings.statusDetail).toMatch(/GOOGLE_CLIENT_ID/);
     }
   });
 
