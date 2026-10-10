@@ -9,11 +9,21 @@ are what to actually say.
 
 ## Accounts
 
-| Who | Email | Password |
-|---|---|---|
-| **Faculty** (dashboard) | `faculty@eduplus.local` | `eduplus-demo` |
-| **Student** (mobile app) | `ananya@eduplus.local` | `eduplus-demo` |
-| Student, stable (spare) | `aarav@eduplus.local` | `eduplus-demo` |
+| Who | Email | Password | USN |
+|---|---|---|---|
+| **Faculty** (dashboard) | `faculty@eduplus.local` | `eduplus-demo` | — |
+| **Student** (mobile app) | `ananya@eduplus.local` | `eduplus-demo` | 1OX21IS045 |
+| Pavan Kumar H — **real parent phone** | `pavan@eduplus.local` | `eduplus-demo` | 1OX21IS050 |
+| Yadava HC — **real parent phone** | `yadava@eduplus.local` | `eduplus-demo` | 1OX21IS051 |
+| Aarav Sharma (stable, spare) | `aarav@eduplus.local` | `eduplus-demo` | 1OX21IS001 |
+
+**Pavan and Yadava are the two to call** — their parent contacts are real
+numbers. Everyone else has an invented one; see the warning below.
+
+Students change their own password from the **Account** screen in the app
+(tap the avatar on Home). Faculty never see it — the student page shows only
+the email, whether they have signed in, and whether the account is correctly
+linked to the USN.
 
 These exist in **both** the live project and the emulator. The mobile app talks
 to the **live** project, so the phone works without your laptop.

@@ -28,7 +28,8 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
   const data = await getStudentDetail(decodeURIComponent(usn).toUpperCase());
   if (!data) notFound();
 
-  const { student, snapshot, rules, history, report, interventions, calls, tasks, parent } = data;
+  const { student, snapshot, rules, history, report, interventions, calls, tasks, parent, account } =
+    data;
 
   const settled = interventions.filter((i) => i.outcomeSnapshotId && i.outcome);
   const latestSettled = settled[0];
@@ -390,6 +391,59 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
                 </ul>
               </div>
             ) : null}
+          </Card>
+
+          {/* ── Student app account ─────────────────────────────────────── */}
+          <Card className="lg:col-span-12">
+            <CardTitle hint="Mobile app">Student account</CardTitle>
+
+            {!account.exists ? (
+              <p className="text-body-sm text-ink-muted">
+                No app account yet. {student.name} cannot sign in to the student app until one is
+                created and linked to this USN.
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-start gap-x-10 gap-y-4">
+                <div>
+                  <p className="text-body-sm text-ink-muted">Signs in with</p>
+                  <p className="text-body mt-0.5 font-medium">{account.email}</p>
+                </div>
+
+                <div>
+                  <p className="text-body-sm text-ink-muted">Last signed in</p>
+                  <p className="text-body mt-0.5 font-medium">
+                    {account.lastSignInAt
+                      ? account.lastSignInAt.slice(0, 16).replace('T', ' ')
+                      : 'Never'}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-body-sm text-ink-muted">Status</p>
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {account.disabled ? (
+                      <Badge tone="nodata">disabled</Badge>
+                    ) : account.lastSignInAt ? (
+                      <Badge tone="lime">active</Badge>
+                    ) : (
+                      <Badge>not opened yet</Badge>
+                    )}
+                    {/* Without the usn claim the app signs in and then shows
+                        nothing, because the security rules deny every read. */}
+                    {!account.claimsOk ? (
+                      <Badge tone="nodata" title="Account is missing the role/usn claim">
+                        not linked to this USN
+                      </Badge>
+                    ) : null}
+                  </div>
+                </div>
+
+                <p className="text-body-sm text-ink-faint max-w-[44ch]">
+                  Students set their own password from the Account screen in the app. Faculty
+                  cannot see it.
+                </p>
+              </div>
+            )}
           </Card>
 
           {/* ── Parent calls ────────────────────────────────────────────── */}

@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../data.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'account.dart';
 
 /// The student's own position, in plain words.
 ///
@@ -52,9 +52,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       IconButton(
-                        tooltip: 'Sign out',
-                        onPressed: () => FirebaseAuth.instance.signOut(),
-                        icon: const Icon(Icons.logout_rounded, color: EduColors.inkMuted),
+                        tooltip: 'Account',
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => AccountScreen(usn: widget.data.usn),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.account_circle_outlined,
+                          color: EduColors.inkMuted,
+                        ),
                       ),
                     ],
                   ),

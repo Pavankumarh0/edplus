@@ -11,6 +11,7 @@ import {
   type RiskSnapshot,
   type Student,
 } from '@eduplus/core';
+import { getStudentAccount, type StudentAccount } from './student-account';
 import {
   applyOutcomes,
   getDb,
@@ -125,6 +126,8 @@ export interface StudentDetailData {
   recordCount: number;
   /** Faculty-only. Null when no contact is on record. */
   parent: Awaited<ReturnType<typeof getParentContact>>;
+  /** Whether this student can actually use the mobile app. */
+  account: StudentAccount;
 }
 
 export async function getStudentDetail(usn: string): Promise<StudentDetailData | null> {
@@ -145,6 +148,8 @@ export async function getStudentDetail(usn: string): Promise<StudentDetailData |
       getParentContact(db, usn),
     ]);
 
+  const account = await getStudentAccount(usn, student.authUid);
+
   return {
     student,
     snapshot,
@@ -160,6 +165,7 @@ export async function getStudentDetail(usn: string): Promise<StudentDetailData |
     projection: projectRisk(history, rules),
     recordCount: records.length,
     parent,
+    account,
   };
 }
 

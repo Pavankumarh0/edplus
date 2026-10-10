@@ -33,7 +33,9 @@
     "test:flutter": "cd apps/mobile && flutter test",
     "verify": "npm run typecheck && npm run test",
     "demo:phone": "tsx --env-file-if-exists=.env.local firebase/set-parent-phone.ts",
-    "demo:phone:emulator": "tsx --env-file-if-exists=.env.local --env-file=.env.emulator firebase/set-parent-phone.ts"
+    "demo:phone:emulator": "tsx --env-file-if-exists=.env.local --env-file=.env.emulator firebase/set-parent-phone.ts",
+    "demo:students": "tsx --env-file-if-exists=.env.local firebase/add-demo-students.ts",
+    "demo:students:emulator": "tsx --env-file-if-exists=.env.local --env-file=.env.emulator firebase/add-demo-students.ts"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",
