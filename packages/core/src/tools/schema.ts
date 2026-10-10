@@ -1,3 +1,5 @@
+import { getConnectorSettings } from '../repositories/config';
+import type { Firestore } from '../repositories/firestore';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { ReportBodySchema } from '../schemas/report';
 import { TOOLS } from './definitions';
@@ -91,6 +93,23 @@ export function anthropicToolsForAgent(agent: AgentName): AnthropicToolDefinitio
       input_schema: toolInputJsonSchema(name),
     };
   });
+}
+
+/**
+ * The same catalogue, minus anything switched off on the Connectors page.
+ *
+ * Preferred over `anthropicToolsForAgent` wherever a database is in hand: a
+ * model that is never offered a tool cannot spend a round discovering it is
+ * refused, and cannot tell a user it tried. `executeTool` still re-checks, so
+ * this is the polite half of the guarantee rather than the load-bearing half.
+ */
+export async function availableAnthropicToolsForAgent(
+  db: Firestore,
+  agent: AgentName,
+): Promise<AnthropicToolDefinition[]> {
+  const settings = await getConnectorSettings(db);
+  const disabled = new Set(settings.disabledTools);
+  return anthropicToolsForAgent(agent).filter((tool) => !disabled.has(tool.name));
 }
 
 /**

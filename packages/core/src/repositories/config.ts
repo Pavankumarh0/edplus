@@ -1,10 +1,13 @@
 import {
   AuditEntrySchema,
+  ConnectorSettingsSchema,
+  DEFAULT_CONNECTOR_SETTINGS,
   DEFAULT_RISK_RULES,
   RiskRulesSchema,
   redactArgs,
   type Actor,
   type AuditEntry,
+  type ConnectorSettings,
   type RiskRules,
 } from '../schemas/index';
 import { nowIso, type Firestore } from './firestore';
@@ -122,4 +125,53 @@ export async function writeAudit(db: Firestore, input: AuditInput): Promise<void
 export async function listAudit(db: Firestore, limit = 50): Promise<AuditEntry[]> {
   const snap = await db.collection(AUDIT).orderBy('at', 'desc').limit(limit).get();
   return snap.docs.map((d) => AuditEntrySchema.parse(d.data()));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Connector settings
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CONNECTORS_DOC = 'connectors';
+
+/**
+ * Which tools are switched off, read fresh on every tool call.
+ *
+ * Deliberately not cached. "Disconnecting a connector removes its tools from
+ * the agent immediately" is only true if the check sees the current value, and
+ * a cache measured in minutes would make the demo — and the guarantee — a lie.
+ * It is one document read against a tool call that is about to do far more.
+ */
+export async function getConnectorSettings(db: Firestore): Promise<ConnectorSettings> {
+  const snap = await db.collection(CONFIG).doc(CONNECTORS_DOC).get();
+  if (!snap.exists) return DEFAULT_CONNECTOR_SETTINGS;
+  return ConnectorSettingsSchema.parse(snap.data());
+}
+
+/** Turns one tool on or off for every agent. */
+export async function setToolEnabled(
+  db: Firestore,
+  toolName: string,
+  enabled: boolean,
+  updatedBy: string,
+): Promise<ConnectorSettings> {
+  const ref = db.collection(CONFIG).doc(CONNECTORS_DOC);
+
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const current = snap.exists
+      ? ConnectorSettingsSchema.parse(snap.data())
+      : DEFAULT_CONNECTOR_SETTINGS;
+
+    const disabled = new Set(current.disabledTools);
+    if (enabled) disabled.delete(toolName);
+    else disabled.add(toolName);
+
+    const next = ConnectorSettingsSchema.parse({
+      disabledTools: [...disabled].sort(),
+      updatedAt: nowIso(),
+      updatedBy,
+    });
+    tx.set(ref, next);
+    return next;
+  });
 }

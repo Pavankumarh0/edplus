@@ -37,6 +37,10 @@
     "./design": {
       "types": "./src/design/index.ts",
       "default": "./src/design/index.ts"
+    },
+    "./connectors": {
+      "types": "./src/connectors/index.ts",
+      "default": "./src/connectors/index.ts"
     }
   },
   "scripts": {

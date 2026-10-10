@@ -9,5 +9,6 @@ export * from './task';
 export * from './report';
 export * from './call';
 export * from './meeting';
+export * from './connector';
 export * from './upload';
 export * from './audit';

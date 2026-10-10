@@ -78,6 +78,18 @@ const NAV: NavItem[] = [
     ),
   },
   {
+    href: '/connectors',
+    label: 'Connectors',
+    icon: (
+      <svg viewBox="0 0 24 24" width="20" height="20" {...stroke}>
+        <path d="M9 7V4.5a2.5 2.5 0 0 1 5 0V7" />
+        <rect x="4" y="7" width="15" height="6" rx="2" />
+        <path d="M11.5 13v3.5a4 4 0 0 1-4 4H6" />
+        <circle cx="18" cy="18" r="2.5" />
+      </svg>
+    ),
+  },
+  {
     href: '/rules',
     label: 'Risk rules',
     icon: (

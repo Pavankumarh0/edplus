@@ -1,4 +1,4 @@
-import { writeAudit } from '../repositories/config';
+import { getConnectorSettings, writeAudit } from '../repositories/config';
 import { TOOLS } from './definitions';
 import { canCall } from './permissions';
 import {
@@ -19,11 +19,16 @@ export interface ToolResult<T = unknown> {
 /**
  * The single entry point for every tool call in the system.
  *
- * Four things happen in a fixed order, and none is skippable:
+ * Five things happen in a fixed order, and none is skippable:
  *   1. the tool exists
  *   2. the caller is permitted to use it
- *   3. the arguments validate against its Zod schema
- *   4. the call is audited — whether it succeeded, was refused or threw
+ *   3. the tool has not been switched off on the Connectors page
+ *   4. the arguments validate against its Zod schema
+ *   5. the call is audited — whether it succeeded, was refused or threw
+ *
+ * Step 3 is checked here rather than only where the tool catalogue is built,
+ * so switching a tool off revokes it from a conversation already in flight —
+ * a model that learnt the name a moment ago still cannot call it.
  *
  * Step 4 runs for refusals too. A `permission_denied` row is the evidence that
  * the allowlist is real, which is precisely what a reviewer asks to see, and it
@@ -67,6 +72,23 @@ export async function executeTool<T = unknown>(
       durationMs: finish(),
     });
     return { ok: false, tool: toolName, error: error.message, durationMs: finish() };
+  }
+
+  const settings = await getConnectorSettings(ctx.db);
+  if (settings.disabledTools.includes(toolName)) {
+    const message =
+      `"${toolName}" is switched off on the Connectors page. ` +
+      'Tell the user it is unavailable and that a faculty member can re-enable it; ' +
+      'do not attempt the action another way.';
+    await writeAudit(ctx.db, {
+      actor: ctx.actor,
+      tool: toolName,
+      args: rawInput,
+      status: 'permission_denied',
+      errorMessage: message,
+      durationMs: finish(),
+    });
+    return { ok: false, tool: toolName, error: message, durationMs: finish() };
   }
 
   const parsed = tool.inputSchema.safeParse(rawInput);

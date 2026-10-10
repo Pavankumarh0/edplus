@@ -1,4 +1,6 @@
 import type { Actor } from '../schemas/index';
+import { getConnectorSettings } from '../repositories/config';
+import type { Firestore } from '../repositories/firestore';
 import { TOOLS } from './definitions';
 import type { AgentName, ToolDefinition } from './types';
 
@@ -117,4 +119,34 @@ export function assertAllowlistsValid(): void {
       }
     }
   }
+}
+
+/**
+ * The tools an actor can actually call right now.
+ *
+ * `toolsForActor` answers "what does this role's allowlist permit", which is
+ * static. This answers "what is available", which also depends on what a
+ * faculty member has switched off — and that is the list to build a model's
+ * tool catalogue from, so a disabled tool is never offered in the first place.
+ *
+ * `executeTool` re-checks independently. Both matter: this one stops the model
+ * seeing the tool, that one stops it calling a name it already knows.
+ */
+export async function availableToolsForActor(
+  db: Firestore,
+  actor: Actor,
+): Promise<string[]> {
+  const settings = await getConnectorSettings(db);
+  const disabled = new Set(settings.disabledTools);
+  return toolsForActor(actor).filter((name) => !disabled.has(name));
+}
+
+/** Tool definitions an agent can see, minus anything switched off. */
+export async function availableDefinitionsForAgent(
+  db: Firestore,
+  agent: AgentName,
+): Promise<ToolDefinition<any, any>[]> {
+  const settings = await getConnectorSettings(db);
+  const disabled = new Set(settings.disabledTools);
+  return definitionsForAgent(agent).filter((tool) => !disabled.has(tool.name));
 }

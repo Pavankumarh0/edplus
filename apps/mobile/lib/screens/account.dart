@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../theme.dart';
 import '../widgets.dart';
+import 'connections.dart';
 
 /// Account settings — in practice, changing the password.
 ///
@@ -177,6 +178,28 @@ class _AccountScreenState extends State<AccountScreen> {
                 FilledButton(
                   onPressed: _busy ? null : _change,
                   child: Text(_busy ? 'Changing…' : 'Change password'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          EduCard(
+            title: 'Connections',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'See exactly what Planly is allowed to do with your record, and what '
+                  'it cannot do.',
+                  style: EduText.bodySm,
+                ),
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => const ConnectionsScreen()),
+                  ),
+                  child: const Text('View connections'),
                 ),
               ],
             ),

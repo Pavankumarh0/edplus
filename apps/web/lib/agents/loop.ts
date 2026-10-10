@@ -1,7 +1,7 @@
 import 'server-only';
 import type Anthropic from '@anthropic-ai/sdk';
 import {
-  anthropicToolsForAgent,
+  availableAnthropicToolsForAgent,
   executeTool,
   formatToolResult,
   type AgentName,
@@ -42,7 +42,9 @@ export interface ToolLoopOptions {
  */
 export async function runToolLoop(options: ToolLoopOptions): Promise<ToolLoopResult> {
   const client = anthropic();
-  const tools = anthropicToolsForAgent(options.agent);
+  // Built from what is enabled right now, so a tool switched off on the
+  // Connectors page is never offered to the model in the first place.
+  const tools = await availableAnthropicToolsForAgent(options.ctx.db, options.agent);
   const maxRounds = options.maxRounds ?? 6;
 
   const messages: Anthropic.MessageParam[] = [

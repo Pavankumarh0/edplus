@@ -2,7 +2,7 @@ import 'server-only';
 import type Anthropic from '@anthropic-ai/sdk';
 import { PLANLY_SYSTEM } from '@eduplus/core';
 import {
-  anthropicToolsForAgent,
+  availableAnthropicToolsForAgent,
   executeTool,
   formatToolResult,
   type ToolContext,
@@ -36,7 +36,9 @@ export async function runPlanly(
   maxRounds = 8,
 ): Promise<PlanlyReply> {
   const client = anthropic();
-  const tools = anthropicToolsForAgent('planly') as Anthropic.Tool[];
+  // Built from what is enabled right now, so a tool switched off on the
+  // Connectors page is never offered to the model at all.
+  const tools = (await availableAnthropicToolsForAgent(ctx.db, 'planly')) as Anthropic.Tool[];
 
   const thread: Anthropic.MessageParam[] = messages.map((m) => ({
     role: m.role,

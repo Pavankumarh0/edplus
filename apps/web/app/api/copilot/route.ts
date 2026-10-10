@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type Anthropic from '@anthropic-ai/sdk';
 import { COPILOT_SYSTEM } from '@eduplus/core';
 import {
-  anthropicToolsForAgent,
+  availableAnthropicToolsForAgent,
   executeTool,
   formatToolResult,
 } from '@eduplus/core/tools';
@@ -39,7 +39,9 @@ export async function POST(request: Request) {
     }
 
     const client = anthropic();
-    const tools = anthropicToolsForAgent('copilot') as Anthropic.Tool[];
+    // Built from what is enabled right now, so a tool switched off on the
+    // Connectors page is never offered to the model at all.
+    const tools = (await availableAnthropicToolsForAgent(ctx.db, 'copilot')) as Anthropic.Tool[];
 
     const messages: Anthropic.MessageParam[] = parsed.data.messages.map((m) => ({
       role: m.role,

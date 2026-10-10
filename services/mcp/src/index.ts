@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { TOOLS, executeTool, toolsForActor, type ToolContext } from '@eduplus/core/tools';
+import { TOOLS, availableToolsForActor, executeTool, type ToolContext } from '@eduplus/core/tools';
 import { getDb, isUsingEmulator } from '@eduplus/core/repositories';
 import type { Actor } from '@eduplus/core';
 
@@ -51,7 +51,10 @@ const server = new McpServer({
  * again inside `executeTool`, so even a client that somehow names a hidden
  * tool is refused and audited.
  */
-const allowed = toolsForActor(actor());
+// Awaited at startup: a tool switched off on the Connectors page is not
+// registered, so an MCP client never sees it. executeTool re-checks on every
+// call, which is what covers a tool disabled while this server is running.
+const allowed = await availableToolsForActor(getDb(), actor());
 
 for (const name of allowed) {
   const tool = TOOLS[name];
