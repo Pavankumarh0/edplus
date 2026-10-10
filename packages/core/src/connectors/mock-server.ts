@@ -41,6 +41,8 @@ export interface MockServerOptions {
 export interface RunningMockServer {
   url: string;
   port: number;
+  /** The form the token endpoint last received, for assertions. */
+  tokenRequest: () => URLSearchParams | null;
   close: () => Promise<void>;
 }
 
@@ -65,6 +67,7 @@ export async function startMockMcpServer(
   // Assigned once the socket is bound; the handler needs it to build the
   // absolute URLs OAuth discovery documents must contain.
   let port = 0;
+  let lastTokenRequest: URLSearchParams | null = null;
 
   const server: Server = createServer((req, res) => {
     if (options.hang) return; // never responds
@@ -99,6 +102,53 @@ export async function startMockMcpServer(
         });
       }
 
+      // Consent, granted instantly. A real provider shows a page; for a test
+      // the interesting part is what comes back, not the clicking.
+      if (req.url?.startsWith('/authorize')) {
+        const query = new URL(req.url, origin).searchParams;
+        const back = new URL(query.get('redirect_uri') ?? `${origin}/cb`);
+        back.searchParams.set('code', 'mock-authorization-code');
+        const state = query.get('state');
+        if (state) back.searchParams.set('state', state);
+        res.writeHead(302, { location: back.href });
+        res.end();
+        return;
+      }
+
+      if (req.url?.startsWith('/token')) {
+        let body = '';
+        req.on('data', (chunk) => {
+          body += chunk;
+        });
+        req.on('end', () => {
+          const form = new URLSearchParams(body);
+          // PKCE and the redirect_uri are both required on exchange. Checking
+          // them here is what makes the test meaningful: a client that forgot
+          // either would otherwise appear to work.
+          if (!form.get('code_verifier')) {
+            res.writeHead(400, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ error: 'invalid_grant', error_description: 'no code_verifier' }));
+            return;
+          }
+          if (!form.get('redirect_uri')) {
+            res.writeHead(400, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ error: 'invalid_grant', error_description: 'no redirect_uri' }));
+            return;
+          }
+          lastTokenRequest = form;
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              access_token: 'mock-access-token',
+              refresh_token: 'mock-refresh-token',
+              token_type: 'Bearer',
+              expires_in: 3600,
+            }),
+          );
+        });
+        return;
+      }
+
       if (req.url?.startsWith('/register')) {
         let body = '';
         req.on('data', (chunk) => {
@@ -117,6 +167,11 @@ export async function startMockMcpServer(
         return;
       }
 
+      // An authorized request falls through to the normal MCP handling below.
+      const authorization = req.headers.authorization ?? '';
+      if (authorization.startsWith('Bearer mock-access-token')) {
+        // fall through
+      } else {
       // Anything else is the MCP endpoint itself, which refuses until authorized.
       res.writeHead(401, {
         'www-authenticate':
@@ -125,6 +180,7 @@ export async function startMockMcpServer(
       });
       res.end(JSON.stringify({ error: 'unauthorized' }));
       return;
+      }
     }
 
     if (options.redirectTo) {
@@ -216,6 +272,7 @@ export async function startMockMcpServer(
   return {
     port,
     url: `http://127.0.0.1:${port}/mcp`,
+    tokenRequest: () => lastTokenRequest,
     close: () =>
       new Promise<void>((resolve) => {
         server.closeAllConnections?.();

@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import {
-  ConnectorError,
-  UrlNotAllowedError,
-  handshakeAndDiscover,
-} from '@eduplus/core/connectors';
+import { handshakeAndDiscover, redactSecrets } from '@eduplus/core/connectors';
 import { RemoteConnectorSchema, type RemoteConnector } from '@eduplus/core';
 import {
   deleteConnectorTokens,
@@ -17,7 +13,7 @@ import {
   writeAudit,
 } from '@eduplus/core/repositories';
 import { errorResponse, facultyContext } from '@/lib/api';
-import { beginConnection } from '@/lib/connector-oauth';
+import { beginConnection, redirectUrlFor } from '@/lib/connector-oauth';
 
 /**
  * Remote MCP connectors — add, test, discover, disconnect.
@@ -63,9 +59,19 @@ function connectorIdFrom(displayName: string): string {
  * URL can carry a token someone pasted despite being told not to.
  */
 function describeFailure(error: unknown): string {
-  if (error instanceof UrlNotAllowedError) return error.message;
-  if (error instanceof ConnectorError) return error.message;
-  return 'Could not connect to that server.';
+  if (!(error instanceof Error)) return 'Could not connect to that server.';
+
+  // Matched by name, not by instanceof. The error is constructed inside
+  // @eduplus/core and caught here; if the bundler ever hands the two sides
+  // separate copies of the class, instanceof quietly starts returning false
+  // and every real message collapses into the generic one — which is exactly
+  // the failure that is hardest to debug.
+  if (['UrlNotAllowedError', 'ConnectorError', 'MissingEncryptionKeyError'].includes(error.name)) {
+    return redactSecrets(error.message);
+  }
+
+  // Anything else still says something, rather than nothing.
+  return redactSecrets(error.message) || 'Could not connect to that server.';
 }
 
 export async function GET() {
@@ -138,6 +144,9 @@ export async function POST(request: Request) {
         displayName,
         description,
         ownerId: ctx.actor.id,
+        // Built from THIS request's origin, so the browser comes back to the
+        // host that holds its session cookie.
+        redirectUri: redirectUrlFor(request),
       });
 
       if (attempt.kind === 'needs_authorization') {

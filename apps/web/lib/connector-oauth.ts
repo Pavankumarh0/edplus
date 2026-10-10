@@ -6,6 +6,7 @@ import {
   canStoreSecrets,
   handshakeAndDiscover,
   newState,
+  resourceMetadataUrls,
   openClientInformation,
   openTokens,
   redactSecrets,
@@ -33,11 +34,18 @@ import {
  * leg needs is in Firestore, encrypted.
  */
 
-/** Where providers send the browser back. Must match the registered URI. */
-export function redirectUrl(): string {
-  const base =
-    process.env.PUBLIC_BASE_URL?.replace(/\/+$/, '') ?? 'http://localhost:3000';
-  return `${base}/api/connectors/remote/callback`;
+/**
+ * Where providers send the browser back.
+ *
+ * Derived from the origin the mentor is actually on, NOT from PUBLIC_BASE_URL.
+ * That variable points at the public tunnel because the telephony provider has
+ * to reach us from the internet; using it here would send the browser back to
+ * a different origin than the one holding its session cookie, and the callback
+ * would see a signed-out visitor. Same origin in, same origin out.
+ */
+export function redirectUrlFor(request: Request): string {
+  const origin = new URL(request.url).origin;
+  return `${origin}/api/connectors/remote/callback`;
 }
 
 export type ConnectAttempt =
@@ -52,14 +60,74 @@ export type ConnectAttempt =
  */
 export async function beginConnection(
   db: Firestore,
-  input: { serverUrl: string; displayName: string; description?: string; ownerId: string },
+  input: {
+    serverUrl: string;
+    displayName: string;
+    description?: string;
+    ownerId: string;
+    redirectUri: string;
+  },
 ): Promise<ConnectAttempt> {
-  // Try unauthenticated first. Most MCP servers need nothing, and starting an
-  // OAuth flow against one that does not would be gratuitous.
-  try {
-    return { kind: 'connected', result: await handshakeAndDiscover(input.serverUrl) };
-  } catch (error) {
-    if (!looksLikeAuthRequired(error)) throw error;
+  const state = newState();
+  const provider = new WebOAuthProvider({ redirectUrl: input.redirectUri, state });
+
+  // Ask whether the server advertises OAuth BEFORE connecting anonymously.
+  //
+  // Checking only whether the handshake fails is not enough, and Google's
+  // Drive MCP is the case that proves it: it answers tools/list to an
+  // anonymous caller and then refuses every actual call. Connecting it
+  // "successfully" with eight unusable tools is worse than not connecting it.
+  // A server that publishes authorization metadata is telling us it expects a
+  // token, so that is what we go on.
+  let needsAuthorization: NeedsAuthorizationError | null = null;
+  let authFailure: string | null = null;
+
+  const metadataUrl = await findResourceMetadata(input.serverUrl);
+  if (metadataUrl) {
+    try {
+      await auth(provider, {
+        serverUrl: input.serverUrl,
+        // Passed explicitly: without a 401 there is no WWW-Authenticate header
+        // to find this by, and the root well-known is a 404 on these servers.
+        resourceMetadataUrl: new URL(metadataUrl),
+      });
+    } catch (error) {
+      if (error instanceof NeedsAuthorizationError) {
+        needsAuthorization = error;
+      } else {
+        authFailure = error instanceof Error ? error.message : String(error);
+      }
+    }
+  }
+
+  // The server said it wants a token and we could not even build the request.
+  // Connecting anyway would mean a connector whose every tool call fails.
+  if (metadataUrl && !needsAuthorization) {
+    throw new Error(
+      redactSecrets(
+        `${input.displayName} requires authorization and its authorization server ` +
+          'does not register clients on demand, so EduPlus needs an OAuth client of ' +
+          'its own. Set MCP_OAUTH_CLIENT_ID and MCP_OAUTH_CLIENT_SECRET (a Google ' +
+          'OAuth client works for Google servers) with the redirect URI ' +
+          `${input.redirectUri}, then try again.` +
+          (authFailure ? ` (${authFailure})` : ''),
+      ),
+    );
+  }
+
+  if (!needsAuthorization) {
+    try {
+      return { kind: 'connected', result: await handshakeAndDiscover(input.serverUrl) };
+    } catch (error) {
+      if (!looksLikeAuthRequired(error)) throw error;
+      throw new Error(
+        redactSecrets(
+          'That server requires authorization but does not publish the OAuth metadata ' +
+            'needed to request it, so there is no way to sign you in. ' +
+            (error instanceof Error ? error.message : ''),
+        ),
+      );
+    }
   }
 
   if (!canStoreSecrets()) {
@@ -69,18 +137,8 @@ export async function beginConnection(
     );
   }
 
-  const state = newState();
-  const provider = new WebOAuthProvider({ redirectUrl: redirectUrl(), state });
-
-  try {
-    await auth(provider, { serverUrl: input.serverUrl });
-    // Reaching here means the SDK believed it was already authorized, which
-    // cannot be true on a first connection.
-    throw new Error('The server asked for authorization but did not say where to send you.');
-  } catch (error) {
-    if (!(error instanceof NeedsAuthorizationError)) {
-      throw new Error(redactSecrets(error instanceof Error ? error.message : String(error)));
-    }
+  {
+    const error = needsAuthorization;
 
     await savePendingAuthorization(db, {
       state,
@@ -88,6 +146,7 @@ export async function beginConnection(
       displayName: input.displayName,
       description: input.description,
       ownerId: input.ownerId,
+      redirectUri: input.redirectUri,
       codeVerifier: provider.mutations.codeVerifier
         ? sealTokensLike(provider.mutations.codeVerifier)
         : null,
@@ -110,13 +169,16 @@ export async function completeConnection(
   pending: {
     state: string;
     serverUrl: string;
+    redirectUri: string;
     codeVerifier: ReturnType<typeof sealTokensLike> | null;
     clientInformation: ReturnType<typeof sealClientInformation> | null;
   },
   code: string,
 ): Promise<{ result: HandshakeResult; sealedTokens: ReturnType<typeof sealTokens> }> {
   const provider = new WebOAuthProvider({
-    redirectUrl: redirectUrl(),
+    // The same value the flow began with; the token exchange is rejected if it
+    // differs by so much as a trailing slash.
+    redirectUrl: pending.redirectUri,
     state: pending.state,
     existingCodeVerifier: pending.codeVerifier ? openTokensLike(pending.codeVerifier) : undefined,
     existingClientInformation: pending.clientInformation
@@ -152,7 +214,8 @@ export async function providerForConnector(
   if (!stored) return undefined;
 
   const provider = new WebOAuthProvider({
-    redirectUrl: redirectUrl(),
+    // Unused on this path: a refresh does not redirect anywhere.
+    redirectUrl: '',
     state: '',
     existingTokens: openTokens(stored.tokens),
     existingClientInformation: stored.clientInformation
@@ -205,4 +268,27 @@ function looksLikeAuthRequired(error: unknown): boolean {
     name === 'UnauthorizedError' ||
     /\b401\b|unauthoriz|www-authenticate|invalid_token/i.test(message)
   );
+}
+
+/**
+ * Finds a server's protected-resource metadata, or null if it publishes none.
+ *
+ * A HEAD-like probe rather than trusting a 401: a server can answer
+ * `initialize` anonymously and still require a token for every real call, and
+ * connecting such a server "successfully" gives a mentor a connector whose
+ * every tool fails. What it publishes is the honest signal.
+ */
+async function findResourceMetadata(serverUrl: string): Promise<string | null> {
+  for (const candidate of resourceMetadataUrls(serverUrl)) {
+    try {
+      const response = await fetch(candidate, {
+        redirect: 'error',
+        signal: AbortSignal.timeout(8000),
+      });
+      if (response.ok) return candidate;
+    } catch {
+      // Unreachable or refused: try the next spelling.
+    }
+  }
+  return null;
 }

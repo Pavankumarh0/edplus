@@ -41,6 +41,14 @@ export interface PendingAuthorization {
   description?: string;
   /** Who started it. The callback must be completed by the same person. */
   ownerId: string;
+  /**
+   * The exact redirect_uri this flow was started with.
+   *
+   * Stored rather than recomputed because the token exchange must send the
+   * identical value, and because it is derived from the origin the mentor was
+   * actually browsing — which is not necessarily the one in PUBLIC_BASE_URL.
+   */
+  redirectUri: string;
   codeVerifier: SealedSecret | null;
   clientInformation: SealedSecret | null;
   createdAt: string;
@@ -118,7 +126,11 @@ export class WebOAuthProvider implements OAuthClientProvider {
   }
 
   clientInformation(): OAuthClientInformationMixed | undefined {
-    return this.mutations.clientInformation ?? this.options.existingClientInformation;
+    return (
+      this.mutations.clientInformation ??
+      this.options.existingClientInformation ??
+      preRegisteredClient()
+    );
   }
 
   saveClientInformation(info: OAuthClientInformationMixed): void {
@@ -182,4 +194,40 @@ export function openClientInformation(
   env?: NodeJS.ProcessEnv,
 ): OAuthClientInformationMixed {
   return JSON.parse(open(sealed, env)) as OAuthClientInformationMixed;
+}
+
+/**
+ * A client id and secret registered by hand, for authorization servers that
+ * do not support dynamic registration.
+ *
+ * Google is the case that forces this: accounts.google.com will not register a
+ * client on demand, so connecting Google's own Drive MCP requires an OAuth
+ * client someone created in the Cloud console. Servers that do support dynamic
+ * registration never reach this — the SDK registers and `saveClientInformation`
+ * takes precedence.
+ */
+export function preRegisteredClient(
+  env: NodeJS.ProcessEnv = process.env,
+): { client_id: string; client_secret?: string } | undefined {
+  const clientId = env.MCP_OAUTH_CLIENT_ID?.trim() || env.GOOGLE_CLIENT_ID?.trim();
+  if (!clientId) return undefined;
+  const clientSecret = env.MCP_OAUTH_CLIENT_SECRET?.trim() || env.GOOGLE_CLIENT_SECRET?.trim();
+  return clientSecret ? { client_id: clientId, client_secret: clientSecret } : { client_id: clientId };
+}
+
+/**
+ * Where a server publishes its protected-resource metadata.
+ *
+ * RFC 9728 puts it under the path, not at the root: a server at /mcp/v1
+ * advertises at /.well-known/oauth-protected-resource/mcp/v1. Google's Drive
+ * MCP does exactly this, and because it answers `initialize` without a token
+ * there is no 401 carrying a WWW-Authenticate pointer to find it by. So both
+ * spellings are tried, path-scoped first.
+ */
+export function resourceMetadataUrls(serverUrl: string): string[] {
+  const url = new URL(serverUrl);
+  const path = url.pathname.replace(/\/+$/, '');
+  const scoped = `${url.origin}/.well-known/oauth-protected-resource${path}`;
+  const root = `${url.origin}/.well-known/oauth-protected-resource`;
+  return scoped === root ? [root] : [scoped, root];
 }
