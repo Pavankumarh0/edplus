@@ -199,9 +199,12 @@ immediately* ticked → create.
 > marks, her score or the report — so there is nothing to leak. Her mother's
 > preferred language is Telugu, and Sarvam speaks it.**
 
-Approve. **The call panel opens immediately and the audio starts playing** —
-no second tab, no second click. (With `TELEPHONY_PROVIDER=vobiz` the phone in
-your hand rings instead, and the panel shows the parent's keypress live.)
+Press **Call now**. The call goes out immediately — with
+`TELEPHONY_PROVIDER=vobiz` the phone in your hand rings and the panel shows the
+parent's keypress as it lands; on `simulated` the panel plays the audio inline
+and you answer it yourself. Either way it is one click, and if the call cannot
+be placed you are told so straight away rather than it sitting silently in a
+queue.
 
 > **This is a stand-in for her mother's phone. Same approved message, same
 > Sarvam speech, same record written — only the telephone network is missing.

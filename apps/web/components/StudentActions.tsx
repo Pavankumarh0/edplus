@@ -250,8 +250,10 @@ export function StudentActions({
           }}
         >
           <p className="text-body-sm text-ink-muted mb-3">
-            The agent will say exactly this and nothing more. It identifies itself as an automated
-            assistant and will offer a mentor callback if asked for a person. Language:{' '}
+            Pressing <span className="text-ink font-medium">Call now</span> places the call
+            immediately. The agent says exactly this and nothing more — it identifies itself as an
+            automated assistant, is never given marks or the risk score, and offers a mentor
+            callback if asked for a person. Language:{' '}
             <span className="text-ink font-medium">{parentLanguage}</span>.
           </p>
 
@@ -304,7 +306,7 @@ export function StudentActions({
 
           <div className="mt-4 flex gap-2">
             <Button type="submit" disabled={busy !== null}>
-              {busy === 'Call' ? 'Queueing…' : 'Approve and queue call'}
+              {busy === 'Call' ? 'Calling…' : 'Call now'}
             </Button>
             <Button variant="ghost" onClick={() => setPanel('none')}>
               Cancel

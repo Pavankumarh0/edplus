@@ -65,19 +65,27 @@ export async function POST(request: Request) {
 
     const message = dialled
       ? usingVobiz
-        ? 'Call approved and being placed through Vobiz.'
-        : 'Call approved. Open the simulator to answer it as the parent.'
-      : `Call approved and queued. ${dialNote ?? ''}`.trim();
+        ? 'Calling now — the phone should ring in a few seconds.'
+        : 'Calling now.'
+      : `Could not place the call. ${dialNote ?? ''}`.trim();
 
-    return NextResponse.json({
-      callId,
-      dialled,
+    // A call that could not be placed is a failure, not a silent queue entry —
+    // a presenter pressing "Call now" must find out immediately, not discover
+    // it when no phone rings.
+    return NextResponse.json(
+      {
+        callId,
+        dialled,
       // Tells the dashboard which experience to open: a live phone call to
       // watch, or a simulated one to play and answer inline.
       provider: usingVobiz ? 'vobiz' : 'simulated',
-      simulatorUrl: usingVobiz ? null : `${voiceService}/simulator?callId=${encodeURIComponent(callId)}`,
-      message,
-    });
+        simulatorUrl: usingVobiz
+          ? null
+          : `${voiceService}/simulator?callId=${encodeURIComponent(callId)}`,
+        message,
+      },
+      { status: dialled ? 200 : 502 },
+    );
   } catch (error) {
     return errorResponse(error);
   }
