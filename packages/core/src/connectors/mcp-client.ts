@@ -1,6 +1,8 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import type { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
 import { checkConnectorUrl, UrlNotAllowedError } from './url-guard';
+import { redactSecrets } from './secrets';
 
 /**
  * Talking to a remote MCP server over Streamable HTTP.
@@ -108,7 +110,11 @@ function guardedFetch(env: NodeJS.ProcessEnv): typeof fetch {
 }
 
 /** Opens a connection, or throws something a person can act on. */
-async function connect(url: string, env: NodeJS.ProcessEnv): Promise<Client> {
+async function connect(
+  url: string,
+  env: NodeJS.ProcessEnv,
+  authProvider?: OAuthClientProvider,
+): Promise<Client> {
   const checked = await checkConnectorUrl(url, env);
 
   const client = new Client(
@@ -120,6 +126,10 @@ async function connect(url: string, env: NodeJS.ProcessEnv): Promise<Client> {
 
   const transport = new StreamableHTTPClientTransport(checked.url, {
     fetch: guardedFetch(env),
+    // Present only for servers that asked for authorization. When it is set
+    // the SDK runs the OAuth flow, which for us means throwing out an
+    // authorization URL for the browser to follow.
+    ...(authProvider ? { authProvider } : {}),
   });
 
   const deadline = new Promise<never>((_, reject) =>
@@ -136,8 +146,10 @@ async function connect(url: string, env: NodeJS.ProcessEnv): Promise<Client> {
     await client.close().catch(() => {});
     if (error instanceof UrlNotAllowedError || error instanceof ConnectorError) throw error;
     throw new ConnectorError(
-      `The MCP handshake failed. Check the URL serves MCP over Streamable HTTP. ` +
-        `(${error instanceof Error ? error.message : String(error)})`,
+      redactSecrets(
+        `The MCP handshake failed. Check the URL serves MCP over Streamable HTTP. ` +
+          `(${error instanceof Error ? error.message : String(error)})`,
+      ),
       error,
     );
   }
@@ -152,8 +164,9 @@ async function connect(url: string, env: NodeJS.ProcessEnv): Promise<Client> {
 export async function handshakeAndDiscover(
   url: string,
   env: NodeJS.ProcessEnv = process.env,
+  authProvider?: OAuthClientProvider,
 ): Promise<HandshakeResult> {
-  const client = await connect(url, env);
+  const client = await connect(url, env, authProvider);
 
   try {
     const listed = await client.listTools();
@@ -190,8 +203,9 @@ export async function callRemoteTool(
   toolName: string,
   args: Record<string, unknown>,
   env: NodeJS.ProcessEnv = process.env,
+  authProvider?: OAuthClientProvider,
 ): Promise<string> {
-  const client = await connect(url, env);
+  const client = await connect(url, env, authProvider);
 
   try {
     const result = await client.callTool({ name: toolName, arguments: args });

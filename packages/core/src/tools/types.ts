@@ -9,6 +9,16 @@ export interface ToolContext {
   actor: Actor;
   /** Injectable clock, so tool behaviour is testable. */
   now?: () => Date;
+  /**
+   * Supplies OAuth credentials for a remote connector, when it has any.
+   *
+   * Injected rather than imported: unsealing a token needs the encryption key
+   * and the host's storage, which belong to the app, not to this package.
+   * A context without it simply calls connectors anonymously.
+   */
+  remoteAuthProvider?: (
+    connectorId: string,
+  ) => Promise<import('@modelcontextprotocol/sdk/client/auth.js').OAuthClientProvider | undefined>;
 }
 
 /**

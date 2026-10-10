@@ -31,6 +31,11 @@ export interface MockServerOptions {
   hang?: boolean;
   /** Reply with a redirect, to test that redirects are refused. */
   redirectTo?: string;
+  /**
+   * Demand OAuth: answer MCP requests with 401 and serve the discovery
+   * documents an MCP client needs to start an authorization flow.
+   */
+  requireAuth?: boolean;
 }
 
 export interface RunningMockServer {
@@ -57,9 +62,70 @@ export async function startMockMcpServer(
 ): Promise<RunningMockServer> {
   const tools = options.tools ?? DEFAULT_TOOLS;
   const sessionId = randomUUID();
+  // Assigned once the socket is bound; the handler needs it to build the
+  // absolute URLs OAuth discovery documents must contain.
+  let port = 0;
 
   const server: Server = createServer((req, res) => {
     if (options.hang) return; // never responds
+
+    // ── OAuth discovery, when this mock is playing a protected server ──────
+    if (options.requireAuth) {
+      const origin = `http://127.0.0.1:${port}`;
+      const json = (body: unknown) => {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(body));
+      };
+
+      if (req.url?.startsWith('/.well-known/oauth-protected-resource')) {
+        return json({
+          resource: `${origin}/mcp`,
+          authorization_servers: [origin],
+        });
+      }
+
+      if (
+        req.url?.startsWith('/.well-known/oauth-authorization-server') ||
+        req.url?.startsWith('/.well-known/openid-configuration')
+      ) {
+        return json({
+          issuer: origin,
+          authorization_endpoint: `${origin}/authorize`,
+          token_endpoint: `${origin}/token`,
+          registration_endpoint: `${origin}/register`,
+          response_types_supported: ['code'],
+          grant_types_supported: ['authorization_code', 'refresh_token'],
+          code_challenge_methods_supported: ['S256'],
+        });
+      }
+
+      if (req.url?.startsWith('/register')) {
+        let body = '';
+        req.on('data', (chunk) => {
+          body += chunk;
+        });
+        req.on('end', () => {
+          res.writeHead(201, { 'content-type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              client_id: 'mock-client-id',
+              client_secret: 'mock-client-secret',
+              redirect_uris: JSON.parse(body || '{}').redirect_uris ?? [],
+            }),
+          );
+        });
+        return;
+      }
+
+      // Anything else is the MCP endpoint itself, which refuses until authorized.
+      res.writeHead(401, {
+        'www-authenticate':
+          `Bearer realm="mcp", resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
+        'content-type': 'application/json',
+      });
+      res.end(JSON.stringify({ error: 'unauthorized' }));
+      return;
+    }
 
     if (options.redirectTo) {
       res.writeHead(302, { location: options.redirectTo });
@@ -145,7 +211,7 @@ export async function startMockMcpServer(
 
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
-  const port = typeof address === 'object' && address ? address.port : 0;
+  port = typeof address === 'object' && address ? address.port : 0;
 
   return {
     port,

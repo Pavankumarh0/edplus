@@ -202,6 +202,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ── Connector OAuth state and tokens ──────────────────────────────────
+    // Never readable by any client. connectorSecrets holds refresh tokens for
+    // third-party accounts, encrypted at rest; connectorAuth holds in-flight
+    // PKCE verifiers. Neither has any reason to leave the server, so the rule
+    // is the same one the audit log gets.
+    match /connectorAuth/{state} {
+      allow read, write: if false;
+    }
+    match /connectorSecrets/{connectorId} {
+      allow read, write: if false;
+    }
+
     // ── Audit log ─────────────────────────────────────────────────────────
     // No client reads this, ever. It records every tool call including
     // redacted arguments, and it is append-only from the server.

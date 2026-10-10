@@ -28,6 +28,7 @@ export function AddConnectorDialog({
   const [url, setUrl] = useState('');
   const [description, setDescription] = useState('');
   const [busy, setBusy] = useState<'test' | 'save' | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tested, setTested] = useState<{ serverName: string; tools: DiscoveredTool[] } | null>(
     null,
@@ -68,6 +69,16 @@ export function AddConnectorDialog({
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error ?? 'Could not add that connector.');
+
+      // A server that wants you to sign in sends you to its own consent page.
+      // Nothing has been saved yet — the connector is created on the way back,
+      // and only if you approve it there.
+      if (json.needsAuthorization && json.authorizeUrl) {
+        setRedirecting(true);
+        window.location.href = json.authorizeUrl as string;
+        return;
+      }
+
       onAdded(json.message);
       onClose();
     } catch (caught) {
@@ -157,7 +168,9 @@ export function AddConnectorDialog({
           >
             Only add servers you trust. EduPlus cannot verify which tools a third-party
             server offers or that they will not change. Everything it returns is treated as
-            untrusted data, and every tool arrives switched off.
+            untrusted data, and every tool arrives switched off. If the server requires an
+            account, you will be sent to its own sign-in page and nothing is saved until you
+            approve it there.
           </p>
 
           {error ? (
@@ -207,7 +220,11 @@ export function AddConnectorDialog({
               onClick={() => void save()}
               className={cx(!canSave && 'opacity-45')}
             >
-              {busy === 'save' ? 'Saving…' : 'Add connector'}
+              {redirecting
+                ? 'Taking you to sign in…'
+                : busy === 'save'
+                  ? 'Saving…'
+                  : 'Add connector'}
             </Button>
           </div>
           {!tested ? (

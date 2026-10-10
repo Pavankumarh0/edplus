@@ -7,6 +7,7 @@ import {
 } from '@eduplus/core/connectors';
 import { RemoteConnectorSchema, type RemoteConnector } from '@eduplus/core';
 import {
+  deleteConnectorTokens,
   deleteRemoteConnector,
   getRemoteConnector,
   listRemoteConnectors,
@@ -16,6 +17,7 @@ import {
   writeAudit,
 } from '@eduplus/core/repositories';
 import { errorResponse, facultyContext } from '@/lib/api';
+import { beginConnection } from '@/lib/connector-oauth';
 
 /**
  * Remote MCP connectors — add, test, discover, disconnect.
@@ -129,7 +131,32 @@ export async function POST(request: Request) {
     const connectorId = connectorIdFrom(displayName);
 
     try {
-      const result = await handshakeAndDiscover(serverUrl);
+      // A server that needs authorization sends the mentor to its own consent
+      // page first; nothing is saved until they come back having approved it.
+      const attempt = await beginConnection(ctx.db, {
+        serverUrl,
+        displayName,
+        description,
+        ownerId: ctx.actor.id,
+      });
+
+      if (attempt.kind === 'needs_authorization') {
+        await writeAudit(ctx.db, {
+          actor: ctx.actor,
+          tool: 'connector.oauth.start',
+          args: { serverUrl },
+          status: 'ok',
+        });
+        return NextResponse.json({
+          needsAuthorization: true,
+          authorizeUrl: attempt.authorizeUrl,
+          message:
+            `${displayName} requires you to sign in. You will be sent to its ` +
+            'authorization page; the connector is added only once you approve it.',
+        });
+      }
+
+      const result = attempt.result;
 
       const connector: RemoteConnector = RemoteConnectorSchema.parse({
         connectorId,
@@ -264,6 +291,9 @@ export async function DELETE(request: Request) {
     if (!existing) return NextResponse.json({ error: 'No such connector.' }, { status: 404 });
 
     await deleteRemoteConnector(ctx.db, connectorId);
+    // A working refresh token for a server nobody uses is exactly the
+    // credential that turns up in a breach years later.
+    await deleteConnectorTokens(ctx.db, connectorId);
     await writeAudit(ctx.db, {
       actor: ctx.actor,
       tool: 'connector.disconnect',

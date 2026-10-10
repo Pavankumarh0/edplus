@@ -1,4 +1,5 @@
 import 'server-only';
+import { providerForConnector } from './connector-oauth';
 import { NextResponse } from 'next/server';
 import { ForbiddenError, UnauthorizedError, actorFor, requireFaculty } from './auth';
 import { describeModelError } from './agents/client';
@@ -11,7 +12,15 @@ import type { ToolContext } from '@eduplus/core/tools';
  */
 export async function facultyContext(): Promise<ToolContext> {
   const session = await requireFaculty();
-  return { db: getDb(), actor: actorFor(session) };
+  const db = getDb();
+  return {
+    db,
+    actor: actorFor(session),
+    // Unsealing a connector's OAuth tokens needs the encryption key and this
+    // app's storage, neither of which belongs in @eduplus/core — so the
+    // capability is injected here rather than imported there.
+    remoteAuthProvider: (connectorId) => providerForConnector(db, connectorId),
+  };
 }
 
 /**

@@ -229,10 +229,15 @@ async function executeRemoteTool(
   }
 
   try {
+    // An authorized connector carries its sealed tokens; an open one has none
+    // and connects anonymously exactly as before.
+    const authProvider = await ctx.remoteAuthProvider?.(remote.connectorId);
     const text = await callRemoteTool(
       connector.serverUrl,
       remote.toolName,
       (rawInput ?? {}) as Record<string, unknown>,
+      process.env,
+      authProvider,
     );
     await writeAudit(ctx.db, {
       actor: ctx.actor,

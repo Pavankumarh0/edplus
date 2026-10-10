@@ -107,6 +107,23 @@ export function ConnectorsBoard() {
     void load();
   }, [load]);
 
+  // The OAuth callback is a top-level navigation, so its result arrives in the
+  // query string rather than in a fetch response. Read it once, show it, and
+  // strip it from the URL so a refresh does not repeat a stale message.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const connected = params.get('connected');
+    const failed = params.get('error');
+    if (!connected && !failed) return;
+
+    if (connected) {
+      setMessage(connected);
+      setTab('remote');
+    }
+    if (failed) setError(failed);
+    window.history.replaceState({}, '', window.location.pathname);
+  }, []);
+
   // Fetched when the tab is first opened rather than up front: the audit log is
   // the largest thing on this page and most visits never look at it.
   useEffect(() => {

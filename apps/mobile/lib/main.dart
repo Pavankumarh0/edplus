@@ -200,28 +200,17 @@ class _StudentShellState extends State<StudentShell> {
                         color: selected ? EduColors.lime : Colors.transparent,
                         borderRadius: BorderRadius.circular(EduRadius.pill),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _tabs[index].icon,
-                            size: 20,
-                            color: selected
-                                ? EduColors.ink
-                                : EduColors.canvas.withValues(alpha: 0.7),
-                          ),
-                          if (selected) ...[
-                            const SizedBox(width: 6),
-                            Text(
-                              _tabs[index].label,
-                              style: const TextStyle(
-                                color: EduColors.ink,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ],
+                      // Icon only. The label still reaches a screen reader
+                      // through the Semantics wrapper above, so dropping the
+                      // visible text costs nothing in accessibility.
+                      child: Center(
+                        child: Icon(
+                          _tabs[index].icon,
+                          size: 22,
+                          color: selected
+                              ? EduColors.ink
+                              : EduColors.canvas.withValues(alpha: 0.7),
+                        ),
                       ),
                     ),
                   ),
