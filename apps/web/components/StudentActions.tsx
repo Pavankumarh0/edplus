@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { INTERVENTION_TYPES, INTERVENTION_TYPE_LABELS, type InterventionType } from '@eduplus/core';
 import { Button, cx } from './ui';
+import { CallPanel } from './CallPanel';
 
 type Panel = 'none' | 'intervention' | 'call';
 
@@ -33,6 +34,12 @@ export function StudentActions({
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [simulatorUrl, setSimulatorUrl] = useState<string | null>(null);
+  // Set the moment a call is approved, which opens the call panel straight
+  // away — no second tab, no second click.
+  const [activeCall, setActiveCall] = useState<{
+    callId: string;
+    provider: 'vobiz' | 'simulated';
+  } | null>(null);
 
   const firstName = studentName.split(/\s+/)[0] ?? studentName;
 
@@ -49,11 +56,18 @@ export function StudentActions({
         error?: string;
         message?: string;
         simulatorUrl?: string | null;
+        callId?: string;
+        provider?: 'vobiz' | 'simulated';
       };
       if (!response.ok) throw new Error(json.error ?? `${label} failed.`);
       setMessage({ kind: 'ok', text: json.message ?? `${label} done.` });
       setSimulatorUrl(json.simulatorUrl ?? null);
       setPanel('none');
+
+      if (label === 'Call' && json.callId) {
+        setActiveCall({ callId: json.callId, provider: json.provider ?? 'simulated' });
+      }
+
       router.refresh();
     } catch (caught) {
       setMessage({
@@ -67,6 +81,17 @@ export function StudentActions({
 
   return (
     <div className="w-full md:w-auto">
+      {activeCall ? (
+        <CallPanel
+          callId={activeCall.callId}
+          provider={activeCall.provider}
+          onClose={() => {
+            setActiveCall(null);
+            router.refresh();
+          }}
+        />
+      ) : null}
+
       <div className="flex flex-wrap gap-2">
         <Button
           variant="secondary"

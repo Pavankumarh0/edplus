@@ -31,7 +31,9 @@
     "dev:voice:emulator": "npm run dev:emulator --workspace @eduplus/voice",
     "dev:mcp:emulator": "npm run dev:emulator --workspace @eduplus/mcp",
     "test:flutter": "cd apps/mobile && flutter test",
-    "verify": "npm run typecheck && npm run test"
+    "verify": "npm run typecheck && npm run test",
+    "demo:phone": "tsx --env-file-if-exists=.env.local firebase/set-parent-phone.ts",
+    "demo:phone:emulator": "tsx --env-file-if-exists=.env.local --env-file=.env.emulator firebase/set-parent-phone.ts"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",

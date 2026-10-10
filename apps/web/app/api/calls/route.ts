@@ -72,6 +72,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       callId,
       dialled,
+      // Tells the dashboard which experience to open: a live phone call to
+      // watch, or a simulated one to play and answer inline.
+      provider: usingVobiz ? 'vobiz' : 'simulated',
       simulatorUrl: usingVobiz ? null : `${voiceService}/simulator?callId=${encodeURIComponent(callId)}`,
       message,
     });

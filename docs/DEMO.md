@@ -7,6 +7,46 @@ are what to actually say.
 
 ---
 
+## Accounts
+
+| Who | Email | Password |
+|---|---|---|
+| **Faculty** (dashboard) | `faculty@eduplus.local` | `eduplus-demo` |
+| **Student** (mobile app) | `ananya@eduplus.local` | `eduplus-demo` |
+| Student, stable (spare) | `aarav@eduplus.local` | `eduplus-demo` |
+
+These exist in **both** the live project and the emulator. The mobile app talks
+to the **live** project, so the phone works without your laptop.
+
+---
+
+## Making the call ring a real phone
+
+The seeded parent numbers are **invented**. Dialling one would ring a stranger.
+Before switching to real calls:
+
+```bash
+# 1. Point the demo student's parent contact at YOUR phone
+npm run demo:phone -- +91XXXXXXXXXX --live
+
+# 2. Expose the voice service publicly — Vobiz fetches the audio itself,
+#    so localhost cannot work
+ngrok http 8787
+
+# 3. In .env.local
+PUBLIC_BASE_URL=https://<your-ngrok-subdomain>.ngrok-free.app
+TELEPHONY_PROVIDER=vobiz
+
+# 4. Restart the voice service, then check it is ready
+curl http://127.0.0.1:8787/health      # providerReady must be true
+```
+
+Leave `TELEPHONY_PROVIDER=simulated` and the call plays **inside the
+dashboard** instead — audio and keypad in a panel, no phone needed. That is
+the safer default for a judged demo.
+
+---
+
 ## Before you start (10 minutes earlier)
 
 ```bash
@@ -33,7 +73,6 @@ Then:
 - Sign in as `faculty@eduplus.local` / `eduplus-demo`.
 - You should see **"No students yet"**. That is correct — the demo opens by
   uploading, and a dashboard that is already full makes step 1 invisible.
-- Open a second tab on **http://localhost:8787/simulator** and leave it there.
 - Have `sample-data/` open in a file picker.
 
 **Check before you present:** `curl http://localhost:8787/health` should report
@@ -150,7 +189,9 @@ immediately* ticked → create.
 > marks, her score or the report — so there is nothing to leak. Her mother's
 > preferred language is Telugu, and Sarvam speaks it.**
 
-Approve → switch to the simulator tab → **Answer call**.
+Approve. **The call panel opens immediately and the audio starts playing** —
+no second tab, no second click. (With `TELEPHONY_PROVIDER=vobiz` the phone in
+your hand rings instead, and the panel shows the parent's keypress live.)
 
 > **This is a stand-in for her mother's phone. Same approved message, same
 > Sarvam speech, same record written — only the telephone network is missing.
@@ -218,7 +259,8 @@ Point at the before/after card and the chart.
 | Forms do nothing, page looks dead | You are on `127.0.0.1`. Use **localhost:3000**. |
 | "Wrong password" with correct password | `NEXT_PUBLIC_*` not reaching the browser — restart the dev server. |
 | Report button errors | `ANTHROPIC_API_KEY` missing from `.env.local`, or rate-limited. Skip to step 4; the seeded report is already there if you ran `npm run seed`. |
-| Simulator says no queued calls | Press **Refresh**. The call must be approved in the dashboard first. |
+| Call panel is silent | The browser blocked autoplay. Press the **Play** button in the panel. |
+| Real call does not ring | `providerReady` is false — check ngrok is running and `PUBLIC_BASE_URL` is the https URL. |
 | Voice service unreachable | Terminal C. `npm run dev:voice`. |
 | Emulator port in use | `npm run emulators:kill` then restart. |
 | Everything is on fire | `npm run seed:emulator -- --april` loads the full finished state, then narrate from step 2. |
