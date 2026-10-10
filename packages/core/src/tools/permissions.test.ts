@@ -79,7 +79,16 @@ describe('the tool registry', () => {
     // agent doing it wrongly is recoverable. Adding a name here means a human
     // must press the button; adding one by accident is what this guards.
     const consequential = TOOL_NAMES.filter((n) => TOOLS[n]!.consequential).sort();
-    expect(consequential).toEqual(['cancel_meeting', 'schedule_meeting', 'schedule_parent_call']);
+    expect(consequential).toEqual([
+      'add_connector',
+      'approve_student_connector',
+      'cancel_meeting',
+      'remove_connector',
+      'revoke_student_connector',
+      'schedule_meeting',
+      'schedule_parent_call',
+      'set_connector_tool',
+    ]);
   });
 });
 
@@ -185,6 +194,7 @@ describe('input schemas', () => {
     // from the actor, not from the call.
     const takesNoArgs = new Set([
       'list_at_risk_students',
+      'list_connectors',
       'list_meetings',
       'get_my_progress',
       'list_my_activities',
@@ -289,6 +299,13 @@ describe('Planly is confined to one student', () => {
       'list_meetings',
       'schedule_meeting',
       'cancel_meeting',
+      'list_connectors',
+      'test_connector',
+      'add_connector',
+      'set_connector_tool',
+      'remove_connector',
+      'approve_student_connector',
+      'revoke_student_connector',
       'get_call_context',
       'log_call_outcome',
     ]) {

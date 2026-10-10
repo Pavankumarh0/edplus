@@ -38,7 +38,11 @@ export async function runPlanly(
   const client = anthropic();
   // Built from what is enabled right now, so a tool switched off on the
   // Connectors page is never offered to the model at all.
-  const tools = (await availableAnthropicToolsForAgent(ctx.db, 'planly')) as Anthropic.Tool[];
+  const tools = (await availableAnthropicToolsForAgent(
+    ctx.db,
+    'planly',
+    ctx.actor.usn,
+  )) as Anthropic.Tool[];
 
   const thread: Anthropic.MessageParam[] = messages.map((m) => ({
     role: m.role,

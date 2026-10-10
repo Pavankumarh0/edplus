@@ -39,6 +39,8 @@ export const AGENT_TOOLS: Record<AgentName, readonly string[]> = {
     'create_student_tasks',
     'propose_meeting',
     'list_meetings',
+    'list_connectors',
+    'test_connector',
   ],
 
   /**

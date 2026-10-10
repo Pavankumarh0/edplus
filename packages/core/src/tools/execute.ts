@@ -2,6 +2,8 @@ import { getConnectorSettings, writeAudit } from '../repositories/config';
 import { getRemoteConnector } from '../repositories/connectors';
 import { callRemoteTool, fenceUntrusted } from '../connectors/mcp-client';
 import { parseRemoteToolName } from '../schemas/connector';
+import { parseStudentToolName } from '../schemas/studentConnector';
+import { listUsableStudentConnections } from '../repositories/studentConnectors';
 import { TOOLS } from './definitions';
 import { canCall } from './permissions';
 import {
@@ -49,6 +51,19 @@ export async function executeTool<T = unknown>(
 ): Promise<ToolResult<T>> {
   const started = Date.now();
   const finish = () => Date.now() - started;
+
+  // A student-namespaced name belongs to a server the student attached from
+  // the college's approved list.
+  const studentRemote = parseStudentToolName(toolName);
+  if (studentRemote) {
+    return (await executeStudentRemoteTool(
+      toolName,
+      studentRemote,
+      rawInput,
+      ctx,
+      finish,
+    )) as ToolResult<T>;
+  }
 
   // A namespaced name belongs to a remote MCP server, not to our registry.
   const remote = parseRemoteToolName(toolName);
@@ -235,5 +250,81 @@ async function executeRemoteTool(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return fail(message, 'error');
+  }
+}
+
+/**
+ * Calls a tool on a server a STUDENT attached.
+ *
+ * Three things are re-read here rather than trusted from the call: the student
+ * in scope comes from the actor, the server URL comes from the college's
+ * approved entry, and the entry has to still exist. A student never supplies a
+ * URL — not in the request, not in storage — so "only approved servers" holds
+ * even if everything else about the call is attacker-shaped.
+ *
+ * Revocation therefore needs no sweep: removing the approved entry makes every
+ * student's connection unresolvable on its next use.
+ */
+async function executeStudentRemoteTool(
+  toolName: string,
+  remote: { connectionId: string; toolName: string },
+  rawInput: unknown,
+  ctx: ToolContext,
+  finish: () => number,
+): Promise<ToolResult<string>> {
+  const fail = async (message: string, status: 'permission_denied' | 'error') => {
+    await writeAudit(ctx.db, {
+      actor: ctx.actor,
+      tool: toolName,
+      args: rawInput,
+      status,
+      errorMessage: message,
+      durationMs: finish(),
+    });
+    return { ok: false, tool: toolName, error: message, durationMs: finish() };
+  };
+
+  // The scope comes from the verified token, never from the arguments.
+  const usn = ctx.actor.usn;
+  if (!usn) {
+    return fail('That connector belongs to a student, and no student is in scope.', 'permission_denied');
+  }
+
+  const usable = await listUsableStudentConnections(ctx.db, usn);
+  const match = usable.find((u) => u.connection.id === remote.connectionId);
+  if (!match) {
+    return fail(
+      'That connector is no longer available. Your college may have removed it, ' +
+        'or you may have disconnected it.',
+      'permission_denied',
+    );
+  }
+
+  if (!match.connection.enabledTools.includes(remote.toolName)) {
+    return fail(`"${remote.toolName}" is switched off for that connector.`, 'permission_denied');
+  }
+
+  try {
+    const text = await callRemoteTool(
+      // The approved entry's URL, not anything stored on the student record.
+      match.entry.serverUrl,
+      remote.toolName,
+      (rawInput ?? {}) as Record<string, unknown>,
+    );
+    await writeAudit(ctx.db, {
+      actor: ctx.actor,
+      tool: toolName,
+      args: rawInput,
+      status: 'ok',
+      durationMs: finish(),
+    });
+    return {
+      ok: true,
+      tool: toolName,
+      data: fenceUntrusted(match.entry.displayName, remote.toolName, text),
+      durationMs: finish(),
+    };
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : String(error), 'error');
   }
 }

@@ -39,7 +39,16 @@ describe('the connector catalogue', () => {
       .map((t) => t.name);
 
     expect(new Set(consequential)).toEqual(
-      new Set(['schedule_parent_call', 'schedule_meeting', 'cancel_meeting']),
+      new Set([
+        'add_connector',
+        'approve_student_connector',
+        'cancel_meeting',
+        'remove_connector',
+        'revoke_student_connector',
+        'schedule_meeting',
+        'schedule_parent_call',
+        'set_connector_tool',
+      ]),
     );
   });
 

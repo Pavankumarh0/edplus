@@ -117,6 +117,19 @@ service cloud.firestore {
                       && request.resource.data.score <= request.resource.data.outOf;
       }
 
+      // ── Student connectors ────────────────────────────────────────────
+      // A student may SEE which services they attached, but may not write
+      // here: attaching one goes through the API, which checks the id against
+      // the college's approved list first. A client write would be a way to
+      // invent a connection to a server nobody approved.
+      //
+      // Note what this document does not contain: a server URL. The approved
+      // entry holds that, so removing the entry revokes it for everyone.
+      match /connectors/{connectorId} {
+        allow get, list: if canReadStudent(usn);
+        allow write: if false;
+      }
+
       // ── Meetings ──────────────────────────────────────────────────────
       // Readable by faculty and by the student they are with — the student is
       // an invitee, so withholding the join link would make the meeting
