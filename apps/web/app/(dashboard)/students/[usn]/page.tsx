@@ -52,7 +52,7 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
 
   const {
     student, snapshot, rules, history, report, interventions, calls, tasks, parent, account,
-    plan, adherence, activities, meetings,
+    plan, adherence, activities, meetings, missedAssignments, submissionCount,
   } = data;
 
   const upcomingMeetings = meetings.filter((m) => isUpcoming(m));
@@ -360,6 +360,55 @@ export default async function StudentPage({ params }: { params: Promise<{ usn: s
                     </ul>
                   </div>
                 ) : null}
+              </>
+            )}
+          </Card>
+
+          {/* ── Assignments ────────────────────────────────────────────── */}
+          <Card className="lg:col-span-5">
+            <CardTitle
+              hint={
+                missedAssignments.length > 0
+                  ? 'Evidence, not a penalty'
+                  : `${submissionCount} submitted`
+              }
+            >
+              Assignments
+            </CardTitle>
+            {missedAssignments.length === 0 ? (
+              <p className="text-body-sm text-ink-muted">
+                {submissionCount === 0
+                  ? 'Nothing set for this class yet.'
+                  : 'Nothing missed. Every assignment with a passed deadline has work against it.'}
+              </p>
+            ) : (
+              <>
+                <p className="text-body-sm text-ink-muted">
+                  {missedAssignments.length} deadline
+                  {missedAssignments.length === 1 ? '' : 's'} passed with nothing submitted.
+                  This is what the submission indicator is measuring.
+                </p>
+                <ul className="divide-hairline mt-3 divide-y">
+                  {missedAssignments.map((assignment) => (
+                    <li
+                      key={assignment.assignmentId}
+                      className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2.5 first:pt-0 last:pb-0"
+                    >
+                      <span className="text-body-sm font-medium">{assignment.title}</span>
+                      <span className="text-body-sm text-ink-faint tabular-nums">
+                        {assignment.subject} · due{' '}
+                        {new Date(assignment.deadline).toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-body-sm text-ink-faint mt-3">
+                  Not added to the score automatically. An approved extension or a sync
+                  failure looks identical here, and only you can tell them apart.
+                </p>
               </>
             )}
           </Card>

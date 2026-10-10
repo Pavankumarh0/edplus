@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'data.dart';
 import 'firebase_options.dart';
 import 'app_config.dart';
+import 'screens/assignments.dart';
 import 'screens/home.dart';
 import 'screens/login.dart';
 import 'screens/planly.dart';
@@ -157,6 +158,7 @@ class _StudentShellState extends State<StudentShell> {
   static const _tabs = [
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.calendar_today_rounded, label: 'Schedule'),
+    (icon: Icons.assignment_rounded, label: 'Assignments'),
     (icon: Icons.auto_awesome_rounded, label: 'Planly'),
     (icon: Icons.show_chart_rounded, label: 'Progress'),
   ];
@@ -168,6 +170,7 @@ class _StudentShellState extends State<StudentShell> {
     final screens = [
       HomeScreen(data: data),
       ScheduleScreen(data: data),
+      const AssignmentsScreen(),
       PlanlyScreen(data: data),
       ProgressScreen(data: data),
     ];

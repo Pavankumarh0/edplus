@@ -117,6 +117,15 @@ service cloud.firestore {
                       && request.resource.data.score <= request.resource.data.outOf;
       }
 
+      // ── Assignment submissions ────────────────────────────────────────
+      // A student reads their own work and their own history. Writing goes
+      // through the API, which stamps the server clock and decides on-time or
+      // late — a client that could write here could mark its own work on time.
+      match /submissions/{assignmentId} {
+        allow get, list: if canReadStudent(usn);
+        allow write: if false;
+      }
+
       // ── Student connectors ────────────────────────────────────────────
       // A student may SEE which services they attached, but may not write
       // here: attaching one goes through the API, which checks the id against
@@ -157,6 +166,16 @@ service cloud.firestore {
                       && onlyChanges(['done', 'doneAt'])
                       && request.resource.data.done is bool;
       }
+    }
+
+    // ── Assignments ───────────────────────────────────────────────────────
+    // Readable by any signed-in user, because a student has to be able to open
+    // one from a QR code before anyone knows whether they are eligible — the
+    // eligibility check happens in the API, against their own record. The
+    // document carries no student data, so a wider read costs nothing.
+    match /assignments/{assignmentId} {
+      allow get, list: if isSignedIn();
+      allow write: if false;
     }
 
     // ── Interventions ─────────────────────────────────────────────────────

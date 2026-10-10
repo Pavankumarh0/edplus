@@ -26,6 +26,11 @@ dependencies:
   # browser when it is not.
   url_launcher: ^6.3.1
 
+  # Reads the assignment QR a mentor puts on the projector. There is always a
+  # typed-code fallback, because a camera pointed at a bright screen fails
+  # often enough that scanning cannot be the only way in.
+  mobile_scanner: ^5.2.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

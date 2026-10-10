@@ -12,6 +12,7 @@ import {
   type RiskSnapshot,
   type Adherence,
   type Activity,
+  type Assignment,
   type Meeting,
   type Student,
   type StudyPlan,
@@ -39,6 +40,8 @@ import {
   usnsWithOpenInterventions,
   listMeetings,
   listUpcomingMeetings,
+  listMissedAssignments,
+  listSubmissionsForStudent,
 } from '@eduplus/core/repositories';
 
 /** Everything the Overview screen needs, in one pass. */
@@ -154,6 +157,15 @@ export interface StudentDetailData {
   activities: Activity[];
   /** Meetings with this student, soonest first. Includes cancelled ones. */
   meetings: Meeting[];
+  /**
+   * Assignments whose deadline passed with nothing submitted.
+   *
+   * Shown as evidence, not folded into the score. A deadline missed during a
+   * power cut and a student who did not do the work are the same row to the
+   * engine and very different conversations for a mentor.
+   */
+  missedAssignments: Assignment[];
+  submissionCount: number;
 }
 
 export async function getStudentDetail(usn: string): Promise<StudentDetailData | null> {
@@ -174,12 +186,15 @@ export async function getStudentDetail(usn: string): Promise<StudentDetailData |
       getParentContact(db, usn),
     ]);
 
-  const [account, plan, activities, meetings] = await Promise.all([
-    getStudentAccount(usn, student.authUid),
-    getActivePlan(db, usn),
-    listActivities(db, usn),
-    listMeetings(db, usn),
-  ]);
+  const [account, plan, activities, meetings, missedAssignments, submissions] =
+    await Promise.all([
+      getStudentAccount(usn, student.authUid),
+      getActivePlan(db, usn),
+      listActivities(db, usn),
+      listMeetings(db, usn),
+      listMissedAssignments(db, student),
+      listSubmissionsForStudent(db, usn),
+    ]);
 
   return {
     student,
@@ -201,6 +216,8 @@ export async function getStudentDetail(usn: string): Promise<StudentDetailData |
     adherence: computeAdherence(tasks, new Date().toISOString().slice(0, 10)),
     activities,
     meetings,
+    missedAssignments,
+    submissionCount: submissions.length,
   };
 }
 

@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Reading the assignment QR a mentor shows on the projector. The app
+         always offers a typed code instead, so refusing this is not a dead
+         end. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <application
         android:networkSecurityConfig="@xml/network_security_config"
         android:label="eduplus"

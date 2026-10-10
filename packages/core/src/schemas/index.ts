@@ -11,5 +11,6 @@ export * from './call';
 export * from './meeting';
 export * from './connector';
 export * from './studentConnector';
+export * from './assignment';
 export * from './upload';
 export * from './audit';

@@ -8,3 +8,4 @@ export * from './meetings';
 export * from './connectors';
 export * from './studentConnectors';
 export * from './connectorAuth';
+export * from './assignments';
