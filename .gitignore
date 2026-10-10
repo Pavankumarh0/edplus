@@ -25,7 +25,9 @@ apps/mobile/.flutter-plugins
 apps/mobile/.flutter-plugins-dependencies
 apps/mobile/android/local.properties
 apps/mobile/ios/Pods/
-apps/mobile/lib/firebase_options.dart
+# NOTE: apps/mobile/lib/firebase_options.dart IS committed. It holds public
+# client identifiers, not secrets — access is controlled by firestore.rules.
+# The team needs it to build, and without it the app fails at startup.
 
 # firebase
 .firebase/

@@ -348,10 +348,12 @@ app.post('/vobiz/gather', async (request, reply) => {
 
     if (speech) {
       // Tier 2: a real conversational turn.
+      const existing = await getCall(db, callId);
       const turn = await runVoiceTurn({
         context,
         history: [],
         parentSaid: speech,
+        priorTurns: existing?.transcript ?? [],
         ctx: voiceCtx(),
       });
 
@@ -549,7 +551,14 @@ app.post('/simulator/reply', async (request, reply) => {
         at: new Date().toISOString(),
       });
 
-      const turn = await runVoiceTurn({ context, history: [], parentSaid: said, ctx: voiceCtx() });
+      const existing = await getCall(db, callId);
+      const turn = await runVoiceTurn({
+        context,
+        history: [],
+        parentSaid: said,
+        priorTurns: existing?.transcript ?? [],
+        ctx: voiceCtx(),
+      });
 
       await appendTranscriptTurn(db, callId, {
         speaker: 'agent',

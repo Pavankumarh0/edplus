@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'data.dart';
+import 'firebase_options.dart';
 import 'screens/home.dart';
 import 'screens/login.dart';
 import 'screens/progress.dart';
@@ -12,9 +13,13 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Android config comes from android/app/google-services.json, so no
-  // generated firebase_options.dart is needed for this platform.
-  await Firebase.initializeApp();
+  // Options passed explicitly rather than read from the google-services
+  // resources: that resource generation is a Gradle step, so a hot restart or
+  // a stale build silently leaves it missing and the app throws
+  // "Failed to load FirebaseOptions from resource" at startup.
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const EduPlusApp());
 }
 

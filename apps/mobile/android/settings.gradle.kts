@@ -21,6 +21,10 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "9.0.1" apply false
     id("org.jetbrains.kotlin.android") version "2.3.20" apply false
+    // Reads android/app/google-services.json and generates the resources
+    // firebase_core needs to find the project at runtime. Without it the app
+    // builds fine and then fails on Firebase.initializeApp().
+    id("com.google.gms.google-services") version "4.4.2" apply false
 }
 
 include(":app")

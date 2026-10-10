@@ -58,6 +58,8 @@ export async function runVoiceTurn(options: {
   history: Anthropic.MessageParam[];
   /** Null for the opening turn. */
   parentSaid: string | null;
+  /** The call so far, so the agent has memory across webhook requests. */
+  priorTurns?: { speaker: string; text: string }[];
   ctx: ToolContext;
 }): Promise<AgentTurn> {
   const { context, history, parentSaid, ctx } = options;
@@ -66,7 +68,10 @@ export async function runVoiceTurn(options: {
 
   history.push({
     role: 'user',
-    content: parentSaid === null ? buildVoiceOpening(context) : buildVoiceReply(context, parentSaid),
+    content:
+      parentSaid === null
+        ? buildVoiceOpening(context)
+        : buildVoiceReply(context, parentSaid, options.priorTurns ?? []),
   });
 
   const toolsUsed: string[] = [];
