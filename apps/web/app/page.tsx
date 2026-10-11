@@ -66,7 +66,7 @@ const SURFACES = [
 
 const FACTS = [
   { value: '4', label: 'weighted indicators' },
-  { value: '298', label: 'unit tests, all passing' },
+  { value: '299', label: 'unit tests, all passing' },
   { value: '0', label: 'scores decided by the model' },
 ];
 

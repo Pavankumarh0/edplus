@@ -80,6 +80,16 @@ describe('the code', () => {
     expect(makeAssignmentCode()).toHaveLength(6);
   });
 
+  it('survives the full URL a QR actually carries', () => {
+    // The QR encodes a URL so a phone's own camera app shows something
+    // meaningful. Everything downstream must cope with that, not just the six
+    // characters — a length cap sized for the code rejected every real scan.
+    const scanned = 'https://unpredestined-ayana-haphazardly.ngrok-free.dev/a/K7M2QP';
+    const last = scanned.split('/').filter(Boolean).pop()!;
+    expect(normaliseAssignmentCode(last)).toBe('K7M2QP');
+    expect(scanned.length).toBeGreaterThan(32);
+  });
+
   it('forgives the usual misreadings when typed', () => {
     expect(normaliseAssignmentCode('k7m2qp')).toBe('K7M2QP');
     expect(normaliseAssignmentCode(' K7 M2 QP ')).toBe('K7M2QP');

@@ -39,7 +39,15 @@ const SubmitSchema = z.object({
   content: z.string().trim().min(1).max(8000),
 });
 
-const ResolveSchema = z.object({ code: z.string().trim().min(1).max(32) });
+/**
+ * What a scan sends.
+ *
+ * Generous on length because the QR encodes a URL, not the bare code — a
+ * phone's own camera app should show a human something meaningful. The handler
+ * strips it to the last path segment. Capping this at the code's own length
+ * rejected every scan before the stripping ever ran.
+ */
+const ResolveSchema = z.object({ code: z.string().trim().min(1).max(300) });
 
 function present(assignment: Assignment, submission: Submission | null, now: Date) {
   const remaining = timeRemainingMs(assignment, now);
@@ -114,7 +122,10 @@ export async function PUT(request: Request) {
 
     const parsed = ResolveSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Expected a code.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'That scan did not contain a readable code. Try again, or type the code.' },
+        { status: 400 },
+      );
     }
 
     // A QR may carry a full URL; take the last path segment either way.
