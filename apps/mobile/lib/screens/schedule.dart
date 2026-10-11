@@ -30,6 +30,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       '${_selected.month.toString().padLeft(2, '0')}-'
       '${_selected.day.toString().padLeft(2, '0')}';
 
+  /// "Sat 11 Oct" — a date someone reads, not a sort key.
+  String get _prettyDay {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    return '${days[_selected.weekday - 1]} ${_selected.day} ${months[_selected.month - 1]}';
+  }
+
   String get _todayKey {
     final now = DateTime.now();
     return '${now.year.toString().padLeft(4, '0')}-'
@@ -97,36 +107,42 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 110),
                   children: [
-                    // A meeting is at a fixed time; the tasks are not. It goes
-                    // first so a student planning their day sees the thing
-                    // they cannot move.
-                    for (final meeting in meetingsToday)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: MeetingTile(meeting: meeting),
-                      ),
-                    if (forDay.isEmpty && meetingsToday.isEmpty)
+                    // One gap size for the whole list. The old mix of 14 and
+                    // 10 made the first tile look detached from the card above
+                    // it without it being obvious why.
+                    if (meetingsToday.isEmpty && forDay.isEmpty)
                       EduEmpty(
                         title: isToday ? 'Nothing planned for today' : 'Nothing planned',
                         body: all.isEmpty
                             ? 'Ask Planly for a plan and your days fill in automatically.'
                             : 'Pick another day, or ask Planly to add something here.',
-                      )
-                    else ...[
+                      ),
+
+                    // A meeting is at a fixed time; the tasks are not. It goes
+                    // first so a student planning their day sees the thing
+                    // they cannot move.
+                    for (final meeting in meetingsToday) ...[
+                      MeetingTile(meeting: meeting),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Only when there is something to measure. A progress bar
+                    // reading "0 of 0 done" is a card that says nothing.
+                    if (forDay.isNotEmpty) ...[
                       EduCard(
-                        title: isToday ? 'Today' : _selectedKey,
+                        padding: 16,
+                        title: isToday ? 'Today' : _prettyDay,
                         hint: '$done of ${forDay.length} done',
                         child: SegmentedProgress(done: done, total: forDay.length),
                       ),
-                      const SizedBox(height: 14),
-                      for (final task in forDay)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _ScheduleTile(data: widget.data, task: task),
-                        ),
+                      const SizedBox(height: 12),
+                      for (final task in forDay) ...[
+                        _ScheduleTile(data: widget.data, task: task),
+                        const SizedBox(height: 12),
+                      ],
                     ],
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
@@ -205,7 +221,9 @@ class _ScheduleTileState extends State<_ScheduleTile> {
     final fromMentor = task['interventionId'] != null;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      // 16 everywhere in this list: a tile whose text starts at a
+      // different x from the card above it reads as a mistake.
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: EduColors.surface,
         borderRadius: BorderRadius.circular(EduRadius.card),

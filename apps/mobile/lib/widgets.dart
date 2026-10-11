@@ -389,7 +389,9 @@ class MeetingTile extends StatelessWidget {
     final agenda = meeting['agenda'];
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      // 16 everywhere in this list: a tile whose text starts at a
+      // different x from the card above it reads as a mistake.
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: EduColors.surface,
         borderRadius: BorderRadius.circular(EduRadius.card),
@@ -398,10 +400,19 @@ class MeetingTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.videocam_rounded,
-            size: 20,
-            color: _cancelled ? EduColors.inkFaint : EduColors.ink,
+          // Boxed to 28, the width of a task tile's checkbox, so the text
+          // column starts at the same x in both kinds of tile. Stacked in one
+          // list, an 8px difference reads as a wonky layout.
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: Center(
+              child: Icon(
+                Icons.videocam_rounded,
+                size: 20,
+                color: _cancelled ? EduColors.inkFaint : EduColors.ink,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
