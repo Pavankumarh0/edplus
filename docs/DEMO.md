@@ -294,9 +294,17 @@ improved. If the live upload fails, switch to that and keep talking.
 
 ## Numbers worth knowing
 
-- 30 students · 4 critical · 7 at risk · 15 stable · 1 insufficient data
+<!-- Re-checked against the live project on 11 Oct 2026. The earlier figures
+     here had drifted from the data and would not have survived a judge
+     looking at the screen. -->
+
+- 33 students scored · 3 critical · 6 at risk · 8 watch · 15 stable · 1 insufficient data
 - Ananya 1OX21IS045: **100 → 36.7**, improved
-- Shaurya 1OX21IS020: **83.6 → 97.9**, worsened
-- Rohan 1OX21IS012: 36.6, escalated Watch → At Risk
-- Fatima 1OX21IS023: 3 data gaps, confidence 0.35
-- 196 unit tests · 48 emulator tests · 7 Flutter tests
+- Shaurya 1OX21IS020: **97.9**, critical — worsened despite outreach
+- Rohan 1OX21IS012: **28.7**, Watch — attendance 97.8% and submissions 100%
+  against assessments 24%, so the engine names **two conflicts**. He does NOT
+  escalate: his assessment sub-score is 82, under the 85 trigger.
+- Fatima 1OX21IS023: insufficient data, **2 gaps, confidence 0.45**
+- Nobody in the current data trips the escalation rule — describe it, do not
+  claim it is on screen
+- 298 unit tests · 65 emulator tests · 15 Flutter tests
