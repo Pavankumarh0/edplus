@@ -53,3 +53,6 @@ services/voice/audio-cache/
 .DS_Store
 Thumbs.db
 *.log
+
+# Throwaway scratch files from manual testing.
+tmp-*
