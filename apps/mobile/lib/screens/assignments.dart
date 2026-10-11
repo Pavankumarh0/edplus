@@ -576,7 +576,7 @@ class _ScannerScreenState extends State<_ScannerScreen> with WidgetsBindingObser
                     final value = capture.barcodes.firstOrNull?.rawValue;
                     if (value != null) _found(value);
                   },
-                  errorBuilder: (context, error, child) => _failure(
+                  errorBuilder: (context, error) => _failure(
                     switch (error.errorCode) {
                       MobileScannerErrorCode.permissionDenied =>
                         'EduPlus does not have permission to use the camera.',

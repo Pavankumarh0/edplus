@@ -10,6 +10,23 @@ import type { ToolContext } from '@eduplus/core/tools';
  * Everything a faculty-only API route needs: the session, a tool context with
  * the right actor, and the db handle.
  */
+/**
+ * A faculty member's name as a student should see it.
+ *
+ * The Actor carries only a uid, because that is all the permission layer and
+ * the audit log need. Anything a STUDENT reads needs a human name — an
+ * assignment that says "set by 68Hqqh9Z2fQeBnoHntgzj83hp533" is worse than
+ * one that says nothing.
+ */
+export async function facultyDisplayName(): Promise<string> {
+  const session = await requireFaculty();
+  if (session.name && session.name.trim()) return session.name.trim();
+  // Fall back to the local part of the email: "faculty@eduplus.local" reads
+  // as "faculty", which is at least a word.
+  const local = session.email?.split('@')[0]?.trim();
+  return local && local.length > 0 ? local : 'Your mentor';
+}
+
 export async function facultyContext(): Promise<ToolContext> {
   const session = await requireFaculty();
   const db = getDb();

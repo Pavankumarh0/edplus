@@ -9,7 +9,7 @@ import {
   saveAssignment,
   writeAudit,
 } from '@eduplus/core/repositories';
-import { errorResponse, facultyContext } from '@/lib/api';
+import { errorResponse, facultyContext, facultyDisplayName } from '@/lib/api';
 
 /**
  * Assignments, for faculty.
@@ -81,6 +81,7 @@ export async function POST(request: Request) {
     }
 
     const code = await reserveAssignmentCode(ctx.db);
+    const facultyName = await facultyDisplayName();
     const now = new Date().toISOString();
 
     const assignment: Assignment = AssignmentSchema.parse({
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
       code,
       ...parsed.data,
       facultyId: ctx.actor.id,
-      facultyName: ctx.actor.id,
+      facultyName,
       acceptLate: parsed.data.acceptLate ?? true,
       status: 'open',
       createdAt: now,
