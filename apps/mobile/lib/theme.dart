@@ -124,6 +124,14 @@ ThemeData buildTheme() {
       style: FilledButton.styleFrom(
         backgroundColor: EduColors.ink,
         foregroundColor: EduColors.canvas,
+        // Size.fromHeight is Size(double.infinity, 48) — a full-width button,
+        // which is what almost every button in this app wants.
+        //
+        // CAREFUL: a FilledButton placed in a Row inherits that infinite width,
+        // takes the whole row, and leaves any sibling Expanded with zero. The
+        // symptom is text wrapping one character per line, which looks nothing
+        // like a button problem. An inline button must override minimumSize —
+        // see MeetingTile.
         minimumSize: const Size.fromHeight(48),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(EduRadius.control),

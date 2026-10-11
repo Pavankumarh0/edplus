@@ -418,6 +418,10 @@ class MeetingTile extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              // A Column in a Row defaults to filling the cross axis, so this
+              // tile grew to whatever height it was offered. Harmless inside a
+              // ListView, which offers infinity, and wrong everywhere else.
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   title,
@@ -452,6 +456,10 @@ class MeetingTile extends StatelessWidget {
                 foregroundColor: EduColors.ink,
                 disabledBackgroundColor: EduColors.sunk,
                 disabledForegroundColor: EduColors.inkFaint,
+                // Overrides the theme's full-width default. Without this the
+                // button demands the whole row and the title next to it wraps
+                // one character per line.
+                minimumSize: const Size(64, 40),
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(EduRadius.pill),

@@ -494,6 +494,9 @@ class _ServiceTile extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: EduColors.lime,
                     foregroundColor: EduColors.ink,
+                    // Inline in a Row, so it must not inherit the theme's
+                    // full-width default.
+                    minimumSize: const Size(64, 40),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   child: Text(busy == 'connect-${service['id']}' ? '…' : 'Connect'),

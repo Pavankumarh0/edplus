@@ -31,6 +31,11 @@ dependencies:
   # often enough that scanning cannot be the only way in.
   mobile_scanner: ^5.2.3
 
+  # Asking for the camera explicitly, and sending someone to Settings when
+  # they have already said no. Declaring the permission in the manifest is not
+  # enough on Android 6+, and a denial is otherwise a dead end inside the app.
+  permission_handler: ^11.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -39,8 +39,15 @@ export function Copilot() {
   // for the mouse mid-triage.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
-      if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
+      // `key` is absent on some synthetic and IME-composition events, and on a
+      // few browser autofill events. Reading it blind crashed the whole page
+      // from a global listener, which is about as expensive as a missing guard
+      // gets.
+      const key = event.key;
+      if (typeof key !== 'string') return;
+
+      if (key === 'Escape') setOpen(false);
+      if (key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         setOpen((v) => !v);
       }

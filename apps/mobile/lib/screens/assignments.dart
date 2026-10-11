@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../assignments_api.dart';
 import '../planly_api.dart' show PlanlyException;
@@ -76,6 +77,8 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
   /// Nothing about the result is decided here. The app sends what it read and
   /// shows what it is told — a phone cannot talk itself into a verification.
   Future<void> _scanExit() async {
+    if (!await _ensureCamera()) return;
+    if (!mounted) return;
     final payload = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const _ScannerScreen()),
     );
@@ -140,7 +143,57 @@ class _AssignmentsScreenState extends State<AssignmentsScreen> {
     }
   }
 
+  /// Opens the scanner, asking for the camera first.
+  ///
+  /// Declaring CAMERA in the manifest only makes the permission available to
+  /// ask for; Android 6+ still needs a runtime grant, and a denial that is
+  /// never surfaced looks exactly like a broken camera. A permanent denial
+  /// cannot be re-asked from inside the app at all, so that case offers
+  /// Settings — and the typed code is always there either way.
+  Future<bool> _ensureCamera() async {
+    var status = await Permission.camera.status;
+    if (status.isGranted) return true;
+
+    if (status.isDenied) status = await Permission.camera.request();
+    if (status.isGranted) return true;
+
+    if (!mounted) return false;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: EduColors.surface,
+        title: const Text('Camera not allowed'),
+        content: Text(
+          status.isPermanentlyDenied || status.isRestricted
+              ? 'EduPlus does not have permission to use the camera, and Android will not '
+                  'ask again. Turn it on in Settings, or use "Type code" instead — the six '
+                  'characters are on the board.'
+              : 'EduPlus needs the camera to read the QR. You can allow it and try again, '
+                  'or use "Type code" instead.',
+          style: const TextStyle(height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Not now'),
+          ),
+          if (status.isPermanentlyDenied || status.isRestricted)
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                openAppSettings();
+              },
+              child: const Text('Open settings'),
+            ),
+        ],
+      ),
+    );
+    return false;
+  }
+
   Future<void> _scan() async {
+    if (!await _ensureCamera()) return;
+    if (!mounted) return;
     final code = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const _ScannerScreen()),
     );
@@ -397,8 +450,108 @@ class _ScannerScreen extends StatefulWidget {
   State<_ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<_ScannerScreen> {
+class _ScannerScreenState extends State<_ScannerScreen> with WidgetsBindingObserver {
+  /// Owned here rather than left to the widget.
+  ///
+  /// Letting MobileScanner create and start its own controller raced with the
+  /// first frame on this device and threw an NPE out of the Android plugin —
+  /// "getClass() on a null object reference" — which surfaced as a camera that
+  /// simply would not start. Holding the controller means start, stop and
+  /// dispose happen in an order we control.
+  final MobileScannerController _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    formats: const [BarcodeFormat.qrCode],
+    autoStart: false,
+  );
+
   bool _handled = false;
+  Object? _startError;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // After the first frame: starting during build is what the race was.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+  }
+
+  Future<void> _start() async {
+    try {
+      await _controller.start();
+    } catch (error) {
+      if (mounted) setState(() => _startError = error);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Android tears the camera down when the app goes to the background; a
+    // controller that does not follow comes back to a dead preview.
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _start();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        _controller.stop().catchError((_) {});
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _found(String value) {
+    if (_handled || value.isEmpty) return;
+    _handled = true;
+    Navigator.of(context).pop(value);
+  }
+
+  Widget _failure(String headline, String? detail) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              headline,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: EduColors.canvas,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Go back and use "Type code" instead — the six characters are on the board.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: EduColors.canvas.withValues(alpha: 0.8), height: 1.5),
+            ),
+            if (detail != null) ...[
+              const SizedBox(height: 18),
+              // Useless to a student; the only thing worth having when it is a
+              // mentor standing next to them wondering why.
+              Text(
+                detail,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: EduColors.canvas.withValues(alpha: 0.45),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -413,42 +566,43 @@ class _ScannerScreenState extends State<_ScannerScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Stack(
-        children: [
-          MobileScanner(
-            onDetect: (capture) {
-              // Fires repeatedly while the code is in frame; take the first.
-              if (_handled) return;
-              final value = capture.barcodes.firstOrNull?.rawValue;
-              if (value == null || value.isEmpty) return;
-              _handled = true;
-              Navigator.of(context).pop(value);
-            },
-            errorBuilder: (context, error, child) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(
-                  'The camera is not available.\n\nGo back and use "Type code" instead — '
-                  'the six characters are on the board.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: EduColors.canvas.withValues(alpha: 0.85), height: 1.5),
+      body: _startError != null
+          ? _failure('The camera could not be started.', _startError.toString())
+          : Stack(
+              children: [
+                MobileScanner(
+                  controller: _controller,
+                  onDetect: (capture) {
+                    final value = capture.barcodes.firstOrNull?.rawValue;
+                    if (value != null) _found(value);
+                  },
+                  errorBuilder: (context, error, child) => _failure(
+                    switch (error.errorCode) {
+                      MobileScannerErrorCode.permissionDenied =>
+                        'EduPlus does not have permission to use the camera.',
+                      MobileScannerErrorCode.unsupported =>
+                        'This device cannot scan QR codes.',
+                      _ => 'The camera could not be started.',
+                    },
+                    error.errorDetails?.message,
+                  ),
                 ),
-              ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Text(
+                      'Point at the QR your mentor is showing',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: EduColors.canvas.withValues(alpha: 0.8),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.all(28),
-              child: Text(
-                'Point at the QR your mentor is showing',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: EduColors.canvas.withValues(alpha: 0.8), fontSize: 14),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
